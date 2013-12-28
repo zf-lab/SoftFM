@@ -2,8 +2,6 @@
 
 # ----- Tweak these settings to configure for your system
 
-# TODO : -D_FILE_OFFSET_BITS=64
-
 CROSS         =
 CFLAGS_OPT    = -O2 -ffast-math -ftree-vectorize
 CFLAGS_DEBUG  = -g
@@ -12,6 +10,7 @@ CFLAGS_PATH   = -I/home/joris/test/rtl-sdr/inst/include
 CFLAGS_EXTRA  =
 LDFLAGS_PATH  = -L/home/joris/test/rtl-sdr/inst/lib
 LDFLAGS_EXTRA =
+LIBS_ALSA     = -lasound
 LIBS_RTLSDR   = /home/joris/test/rtl-sdr/inst/lib/librtlsdr.a -lusb-1.0
 LIBS_EXTRA    =
 
@@ -19,10 +18,11 @@ LIBS_EXTRA    =
 
 
 CXX = $(CROSS)g++
-CXXFLAGS = -std=c++11 -Wall $(CFLAGS_OPT) $(CFLAGS_DEBUG) \
+CXXFLAGS = -std=c++11 -Wall -D_FILE_OFFSET_BITS=64 \
+           $(CFLAGS_OPT) $(CFLAGS_DEBUG) \
            $(CFLAGS_ARCH) $(CFLAGS_PATH) $(CFLAGS_EXTRA)
 LDFLAGS = $(LDFLAGS_PATH) $(LDFLAGS_EXTRA)
-LDLIBS  = $(LIBS_RTLSDR) $(LIBS_EXTRA)
+LDLIBS  = $(LIBS_ALSA) $(LIBS_RTLSDR) $(LIBS_EXTRA)
 
 OBJS	= RtlSdrSource.o Filter.o FmDecode.o AudioOutput.o main.o
 

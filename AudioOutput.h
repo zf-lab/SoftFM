@@ -119,7 +119,9 @@ public:
     bool write(const SampleVector& samples);
 
 private:
-    // TODO
+    unsigned int         m_nchannels;
+    struct _snd_pcm *    m_pcm;
+    std::vector<uint8_t> m_bytebuf;
 };
 
 #endif

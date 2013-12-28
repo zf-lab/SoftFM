@@ -171,6 +171,9 @@ void write_output_data(AudioOutput *output, DataBuffer<Sample> *buf,
         // Get samples from buffer and write to output.
         SampleVector samples = buf->pull();
         output->write(samples);
+        if (!(*output)) {
+            fprintf(stderr, "ERROR: AudioOutput: %s\n", output->error().c_str());
+        }
     }
 }
 
@@ -222,12 +225,11 @@ bool parse_opt(const char *s, double& v)
 
 int main(int argc, char **argv)
 {
-    int c;
     double  freq    = -1;
     int     devidx  = 0;
     double  ifrate  = 1.0e6;
     int     pcmrate = 48000;
-    int     stereo  = 1;
+    bool    stereo  = true;
     enum OutputMode { MODE_RAW, MODE_WAV, MODE_ALSA };
     OutputMode outmode = MODE_ALSA;
     string  filename;
@@ -237,7 +239,22 @@ int main(int argc, char **argv)
     fprintf(stderr,
             "SoftFM - Software decoder for FM broadcast radio with RTL-SDR\n");
 
-    while ((c = getopt(argc, argv, "f:d:s:r:MR:W:P::b:")) >= 0) {
+    const struct option longopts[] = {
+        { "freq",       1, NULL, 'f' },
+        { "dev",        1, NULL, 'd' },
+        { "ifrate",     1, NULL, 's' },
+        { "pcmrate",    1, NULL, 'r' },
+        { "mono",       0, NULL, 'M' },
+        { "raw",        1, NULL, 'R' },
+        { "wav",        1, NULL, 'W' },
+        { "play",       2, NULL, 'P' },
+        { "buffer",     1, NULL, 'b' },
+        { NULL,         0, NULL, 0 } };
+
+    int c, longindex;
+    while ((c = getopt_long(argc, argv,
+                            "f:d:s:r:MR:W:P::b:",
+                            longopts, &longindex)) >= 0) {
         switch (c) {
             case 'f':
                 if (!parse_opt(optarg, freq) || freq <= 0) {
@@ -260,7 +277,7 @@ int main(int argc, char **argv)
                 }
                 break;
             case 'M':
-                stereo = 0;
+                stereo = false;
                 break;
             case 'R':
                 outmode = MODE_RAW;
@@ -377,9 +394,16 @@ int main(int argc, char **argv)
             audio_output.reset(new RawAudioOutput(filename));
             break;
         case MODE_WAV:
-        case MODE_ALSA:
-            // TODO
             abort();
+        case MODE_ALSA:
+            audio_output.reset(new AlsaAudioOutput(devname, pcmrate, stereo));
+            break;
+    }
+
+    if (!(*audio_output)) {
+        fprintf(stderr, "ERROR: AudioOutput: %s\n",
+                        audio_output->error().c_str());
+        exit(1);
     }
 
     // If buffering enabled, start background output thread.
@@ -424,8 +448,8 @@ int main(int argc, char **argv)
 // TODO : investigate I/Q imbalance to fix Radio4 noise
 // TODO : investigate if PLL receiver is better than phase discriminator at weak reception
 
+// TODO : show mono/stereo (switching)
 
-// TODO : show mono/stereo
         fprintf(stderr,
                 "\rblk=%6d  freq=%8.4fMHz  IF=%+5.1fdB  BB=%+5.1fdB  audio=%+5.1fdB ",
                 block,
@@ -461,6 +485,7 @@ int main(int argc, char **argv)
     // Join background threads.
     source_thread.join();
     if (outputbuf_samples > 0) {
+        output_buffer.push_end();
         output_thread.join();
     }
 
