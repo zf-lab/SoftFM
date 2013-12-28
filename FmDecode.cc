@@ -96,12 +96,12 @@ PilotPhaseLock::PilotPhaseLock(double freq, double bandwidth, double minsignal)
     m_lock_delay = int(10.0 / bandwidth);
     m_lock_cnt   = 0;
 
-    // Create 2nd order filter for IQ representation of phase error
-    // with both poles at z = exp(-2.5 * bandwidth * 2*PI).
+    // Create 2nd order filter for I/Q representation of phase error.
+    // Filter has both poles at z = exp(-2.5 * bandwidth * 2*PI).
     double t = exp(-2.5 * bandwidth * 2.0 * M_PI);
-    m_iqfilter_a1 = -2.0 * t;
-    m_iqfilter_a2 = t * t;
-    m_iqfilter_b0 = m_iqfilter_a1 + m_iqfilter_a2;
+    m_phasor_a1 = -2.0 * t;
+    m_phasor_a2 = t * t;
+    m_phasor_b0 = m_phasor_a1 + m_phasor_a2;
 
     // Create loop filter to stabilize the loop.
     // Zero at z = exp(-0.2 * bandwidth * 2*PI), 
@@ -113,10 +113,10 @@ PilotPhaseLock::PilotPhaseLock(double freq, double bandwidth, double minsignal)
     m_freq  = freq * 2.0 * M_PI;
     m_phase = 0;
 
-    m_iqfilter_i1 = 0;
-    m_iqfilter_i2 = 0;
-    m_iqfilter_q1 = 0;
-    m_iqfilter_q2 = 0;
+    m_phasor_i1 = 0;
+    m_phasor_i2 = 0;
+    m_phasor_q1 = 0;
+    m_phasor_q2 = 0;
 }
 
 
@@ -141,16 +141,16 @@ void PilotPhaseLock::process(const SampleVector& samples_in,
         Sample phasor_q = psin * x;
 
         // Run IQ phase error through low-pass filter.
-        phasor_i = m_iqfilter_b0 * phasor_i
-                   - m_iqfilter_a1 * m_iqfilter_i1
-                   - m_iqfilter_a2 * m_iqfilter_i2;
-        phasor_q = m_iqfilter_b0 * phasor_q
-                   - m_iqfilter_a1 * m_iqfilter_q1
-                   - m_iqfilter_a2 * m_iqfilter_q2;
-        m_iqfilter_i2 = m_iqfilter_i1;
-        m_iqfilter_i1 = phasor_i;
-        m_iqfilter_q2 = m_iqfilter_q1;
-        m_iqfilter_q1 = phasor_q;
+        phasor_i = m_phasor_b0 * phasor_i
+                   - m_phasor_a1 * m_phasor_i1
+                   - m_phasor_a2 * m_phasor_i2;
+        phasor_q = m_phasor_b0 * phasor_q
+                   - m_phasor_a1 * m_phasor_q1
+                   - m_phasor_a2 * m_phasor_q2;
+        m_phasor_i2 = m_phasor_i1;
+        m_phasor_i1 = phasor_i;
+        m_phasor_q2 = m_phasor_q1;
+        m_phasor_q1 = phasor_q;
 
         // Convert I/Q ratio to estimate of phase error.
         Sample phase_err;

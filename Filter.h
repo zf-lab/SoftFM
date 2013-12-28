@@ -85,8 +85,8 @@ private:
     double          m_downsample;
     unsigned int    m_downsample_int;
     unsigned int    m_pos_int;
-    Coeff           m_pos_frac;
-    CoeffVector     m_coeff;
+    Sample          m_pos_frac;
+    SampleVector    m_coeff;
     SampleVector    m_state;
 };
 
@@ -132,7 +132,7 @@ public:
     void process(const SampleVector& samples_in, SampleVector& samples_out);
 
 private:
-    Coeff   b0, a1, a2, a3, a4;
+    Sample  b0, a1, a2, a3, a4;
     Sample  y1, y2, y3, y4;
 };
 
@@ -157,7 +157,7 @@ public:
     void processInPlace(SampleVector& samples);
 
 private:
-    Coeff  b0, b1, b2, a1, a2;
+    Sample b0, b1, b2, a1, a2;
     Sample x1, x2, y1, y2;
 };
 

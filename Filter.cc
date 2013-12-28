@@ -208,23 +208,23 @@ void DownsampleFilter::process(const SampleVector& samples_in,
         // the FIR coefficient table. This is a bitch.
 
         // Estimate number of output samples we can produce in this run.
-        Coeff p = m_pos_frac;
-        Coeff pstep = m_downsample;
+        Sample p = m_pos_frac;
+        Sample pstep = m_downsample;
         unsigned int n_out = int(2 + n / pstep);
 
         samples_out.resize(n_out);
 
         // Produce output samples.
         unsigned int i = 0;
-        Coeff pf = p;
+        Sample pf = p;
         unsigned int pi = int(pf);
         while (pi < n) {
-            Coeff k1 = pf - pi;
-            Coeff k0 = 1 - k1;
+            Sample k1 = pf - pi;
+            Sample k0 = 1 - k1;
 
             Sample y = 0;
             for (unsigned int j = 0; j <= order; j++) {
-                Coeff  k = m_coeff[j] * k0 + m_coeff[j+1] * k1;
+                Sample k = m_coeff[j] * k0 + m_coeff[j+1] * k1;
                 Sample s = (j <= pi) ? samples_in[pi-j] : m_state[order+pi-j];
                 y += k * s;
             }
@@ -278,8 +278,8 @@ void LowPassFilterRC::process(const SampleVector& samples_in,
      * Discrete domain:
      *   H(z) = (1 - exp(-1/timeconst)) / (1 - exp(-1/timeconst) / z)a
      */
-    Coeff a1 = - exp(-1/m_timeconst);;
-    Coeff b0 = 1 + a1;
+    Sample a1 = - exp(-1/m_timeconst);;
+    Sample b0 = 1 + a1;
 
     unsigned int n = samples_in.size();
     samples_out.resize(n);
@@ -298,8 +298,8 @@ void LowPassFilterRC::process(const SampleVector& samples_in,
 // Process samples in-place.
 void LowPassFilterRC::processInPlace(SampleVector& samples)
 {
-    Coeff a1 = - exp(-1/m_timeconst);;
-    Coeff b0 = 1 + a1;
+    Sample a1 = - exp(-1/m_timeconst);;
+    Sample b0 = 1 + a1;
 
     unsigned int n = samples.size();
 

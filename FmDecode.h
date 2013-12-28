@@ -26,8 +26,8 @@ public:
     void process(const IQSampleVector& samples_in, SampleVector& samples_out);
 
 private:
-    const Coeff m_freq_scale_factor;
-    IQSample    m_last_sample;
+    const Sample m_freq_scale_factor;
+    IQSample     m_last_sample;
 };
 
 
@@ -56,10 +56,10 @@ public:
     }
 
 private:
-    Coeff   m_minfreq, m_maxfreq;
-    Coeff   m_iqfilter_b0, m_iqfilter_a1, m_iqfilter_a2;
-    Coeff   m_loopfilter_b0, m_loopfilter_b1;
-    Sample  m_iqfilter_i1, m_iqfilter_i2, m_iqfilter_q1, m_iqfilter_q2;
+    Sample  m_minfreq, m_maxfreq;
+    Sample  m_phasor_b0, m_phasor_a1, m_phasor_a2;
+    Sample  m_phasor_i1, m_phasor_i2, m_phasor_q1, m_phasor_q2;
+    Sample  m_loopfilter_b0, m_loopfilter_b1;
     Sample  m_loopfilter_x1;
     Sample  m_freq, m_phase;
     Sample  m_minsignal;
