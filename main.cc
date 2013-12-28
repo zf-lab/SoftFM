@@ -5,14 +5,18 @@
  */
 
 #include <cstdlib>
+#include <cstdio>
 #include <climits>
 #include <cmath>
+#include <csignal>
+#include <cstring>
 #include <atomic>
 #include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <queue>
 #include <thread>
+#include <unistd.h>
 #include <getopt.h>
 
 #include "SoftFM.h"
@@ -178,6 +182,20 @@ void write_output_data(AudioOutput *output, DataBuffer<Sample> *buf,
 }
 
 
+/** Handle Ctrl-C and SIGTERM. */
+static void handle_sigterm(int sig)
+{
+    stop_flag.store(true);
+
+    string msg = "Got signal ";
+    msg += strsignal(sig);
+    msg += ", stopping ...\n";
+
+    const char *s = msg.c_str();
+    write(STDERR_FILENO, s, strlen(s));
+}
+
+
 void usage()
 {
     fprintf(stderr,
@@ -315,7 +333,19 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-// TODO : catch Ctrl-C 
+    // Catch Ctrl-C and SIGTERM
+    struct sigaction sigact;
+    sigact.sa_handler = handle_sigterm;
+    sigemptyset(&sigact.sa_mask);
+    sigact.sa_flags = SA_RESETHAND;
+    if (sigaction(SIGINT, &sigact, NULL) < 0) {
+        fprintf(stderr, "WARNING: can not install SIGINT handler (%s)\n",
+                strerror(errno));
+    }
+    if (sigaction(SIGTERM, &sigact, NULL) < 0) {
+        fprintf(stderr, "WARNING: can not install SIGTERM handler (%s)\n",
+                strerror(errno));
+    }
 
     // Intentionally tune at a higher frequency to avoid DC offset.
     double tuner_freq = freq;
@@ -422,7 +452,7 @@ int main(int argc, char **argv)
     double audio_level = 0;
 
     // Main loop.
-    for (unsigned int block = 0; ; block++) {
+    for (unsigned int block = 0; !stop_flag.load(); block++) {
 
         // Check for overflow of source buffer.
         if (!inbuf_length_warning &&
@@ -434,12 +464,14 @@ int main(int argc, char **argv)
 
         // Pull next block from source buffer.
         IQSampleVector iqsamples = source_buffer.pull();
+        if (iqsamples.empty())
+            break;
 
         // Decode FM signal.
         fm.process(iqsamples, audiosamples);
 
         // Measure audio level.
-        Sample audio_mean, audio_rms;
+        double audio_mean, audio_rms;
         samples_mean_rms(audiosamples, audio_mean, audio_rms);
         audio_level = 0.95 * audio_level + 0.05 * audio_rms;
 
@@ -481,6 +513,8 @@ int main(int argc, char **argv)
         }
 
     }
+
+    fprintf(stderr, "\n");
 
     // Join background threads.
     source_thread.join();

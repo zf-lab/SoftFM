@@ -33,12 +33,12 @@ static inline Sample fast_atan(Sample x)
 
 
 /** Compute RMS level over a small prefix of the specified sample vector. */
-static Sample rms_level_approx(const IQSampleVector& samples)
+static IQSample::value_type rms_level_approx(const IQSampleVector& samples)
 {
     unsigned int n = samples.size();
     n = (n + 63) / 64;
 
-    Sample level = 0;
+    IQSample::value_type level = 0;
     for (unsigned int i = 0; i < n; i++) {
         const IQSample& s = samples[i];
         IQSample::value_type re = s.real(), im = s.imag();
@@ -76,6 +76,120 @@ void PhaseDiscriminator::process(const IQSampleVector& samples_in,
     }
 
     m_last_sample = s0;
+}
+
+
+/* ****************  class PilotPhaseLock  **************** */
+
+// Construct phase-locked loop.
+PilotPhaseLock::PilotPhaseLock(double freq, double bandwidth, double minsignal)
+{
+    // This is a type-2, 4th order phase-locked loop.
+    // I don't understand what I'm doing; hopefully it just works.
+
+    // Set min/max locking frequencies.
+    m_minfreq = (freq - bandwidth) * 2.0 * M_PI;
+    m_maxfreq = (freq + bandwidth) * 2.0 * M_PI;
+
+    // Set valid signal threshold.
+    m_minsignal  = minsignal;
+    m_lock_delay = int(10.0 / bandwidth);
+    m_lock_cnt   = 0;
+
+    // Create 2nd order filter for IQ representation of phase error
+    // with both poles at z = exp(-2.5 * bandwidth * 2*PI).
+    double t = exp(-2.5 * bandwidth * 2.0 * M_PI);
+    m_iqfilter_a1 = -2.0 * t;
+    m_iqfilter_a2 = t * t;
+    m_iqfilter_b0 = m_iqfilter_a1 + m_iqfilter_a2;
+
+    // Create loop filter to stabilize the loop.
+    // Zero at z = exp(-0.2 * bandwidth * 2*PI), 
+    m_loopfilter_b0 = 1.0;
+    m_loopfilter_b1 = - exp(-0.2 * bandwidth * 2.0 * M_PI);
+// TODO : loop gain 
+
+    // Reset frequency and phase.
+    m_freq  = freq * 2.0 * M_PI;
+    m_phase = 0;
+
+    m_iqfilter_i1 = 0;
+    m_iqfilter_i2 = 0;
+    m_iqfilter_q1 = 0;
+    m_iqfilter_q2 = 0;
+}
+
+
+// Process samples.
+void PilotPhaseLock::process(const SampleVector& samples_in,
+                             SampleVector& samples_out)
+{
+    unsigned int n = samples_in.size();
+
+    samples_out.resize(n);
+
+    for (unsigned int i = 0; i < n; i++) {
+
+        // Generate locked pilot tone.
+        Sample psin = sin(m_phase);
+        Sample pcos = cos(m_phase);
+        samples_out[i] = pcos;
+
+        // Multiply locked tone with input.
+        Sample x = samples_in[i];
+        Sample phasor_i = pcos * x;
+        Sample phasor_q = psin * x;
+
+        // Run IQ phase error through low-pass filter.
+        phasor_i = m_iqfilter_b0 * phasor_i
+                   - m_iqfilter_a1 * m_iqfilter_i1
+                   - m_iqfilter_a2 * m_iqfilter_i2;
+        phasor_q = m_iqfilter_b0 * phasor_q
+                   - m_iqfilter_a1 * m_iqfilter_q1
+                   - m_iqfilter_a2 * m_iqfilter_q2;
+        m_iqfilter_i2 = m_iqfilter_i1;
+        m_iqfilter_i1 = phasor_i;
+        m_iqfilter_q2 = m_iqfilter_q1;
+        m_iqfilter_q1 = phasor_q;
+
+        // Convert I/Q ratio to estimate of phase error.
+        Sample phase_err;
+        if (phasor_i > abs(phasor_q)) {
+            // We are within +/- 45 degrees from lock.
+            // Use simple linear approximation of arctan.
+            phase_err = phasor_q / phasor_i;
+        } else if (phasor_q > 0) {
+            // We are lagging more than 45 degrees behind the input.
+            phase_err = 1;
+        } else {
+            // We are more than 45 degrees ahead of the input.
+            phase_err = -1;
+        }
+
+        // Detect signal threshold.
+        if (phasor_i > m_minsignal) {
+            m_lock_cnt++;
+        } else {
+            m_lock_cnt = 0;
+        }
+
+        // Run phase error through loop filter and update frequency estimate.
+        m_freq += m_loopfilter_b0 * phase_err
+                  + m_loopfilter_b1 * m_loopfilter_x1;
+        m_loopfilter_x1 = phase_err;
+
+        // Limit frequency to allowable range.
+        m_freq = max(m_minfreq, min(m_maxfreq, m_freq));
+
+        // Update locked phase.
+        m_phase += m_freq;
+        if (m_phase < -2.0 * M_PI)
+            m_phase += 2.0 * M_PI;
+        else if (m_phase > 2.0 * M_PI)
+            m_phase -= 2.0 * M_PI;
+    }
+
+    m_lock_cnt = min(m_lock_delay, m_lock_cnt);
 }
 
 
@@ -125,7 +239,7 @@ void FmDecoder::process(const IQSampleVector& samples_in,
     m_iffilter.process(m_buf_iftuned, m_buf_iffiltered);
 
     // Measure IF level.
-    Sample if_rms = rms_level_approx(m_buf_iffiltered);
+    double if_rms = rms_level_approx(m_buf_iffiltered);
     m_if_level = 0.95 * m_if_level + 0.05 * if_rms;
 
     // Extract carrier frequency.
@@ -138,7 +252,7 @@ void FmDecoder::process(const IQSampleVector& samples_in,
     }
 
     // Measure baseband level.
-    Sample baseband_mean, baseband_rms;
+    double baseband_mean, baseband_rms;
     samples_mean_rms(m_buf_baseband, baseband_mean, baseband_rms);
     m_baseband_mean  = 0.95 * m_baseband_mean + 0.05 * baseband_mean;
     m_baseband_level = 0.95 * m_baseband_level + 0.05 * baseband_rms;

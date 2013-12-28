@@ -7,15 +7,15 @@
 typedef std::complex<float> IQSample;
 typedef std::vector<IQSample> IQSampleVector;
 
-typedef float Sample;
+typedef double Sample;
 typedef std::vector<Sample> SampleVector;
 
-typedef float Coeff;
+typedef double Coeff;
 typedef std::vector<Coeff> CoeffVector;
 
 
 /** Compute mean and RMS over a sample vector. */
-inline void samples_mean_rms(const SampleVector& samples, Sample& mean, Sample& rms)
+inline void samples_mean_rms(const SampleVector& samples, double& mean, double& rms)
 {
     Sample vsum = 0;
     Sample vsumsq = 0;

@@ -48,7 +48,7 @@ public:
     void process(const IQSampleVector& samples_in, IQSampleVector& samples_out);
 
 private:
-    CoeffVector     m_coeff;
+    std::vector<IQSample::value_type> m_coeff;
     IQSampleVector  m_state;
 };
 

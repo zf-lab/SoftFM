@@ -26,12 +26,46 @@ public:
     void process(const IQSampleVector& samples_in, SampleVector& samples_out);
 
 private:
-    const Sample    m_freq_scale_factor;
-    IQSample        m_last_sample;
+    const Coeff m_freq_scale_factor;
+    IQSample    m_last_sample;
 };
 
 
-// TODO : maybe CIC downsampling from 1 MS/s to ~ 250 kS/s
+/** Phase-locked loop for stereo pilot. */
+class PilotPhaseLock
+{
+public:
+
+    /**
+     * Construct phase-locked loop.
+     *
+     * freq       :: center frequency of capture range relative to sample freq
+     *               (0.5 is Nyquist)
+     * bandwidth  :: approximate bandwidth relative to sample frequency
+     * minsignal  :: minimum pilot amplitude
+     */
+    PilotPhaseLock(double freq, double bandwidth, double minsignal);
+
+    /** Process samples and extract pilot tone at unit amplitude. */
+    void process(const SampleVector& samples_in, SampleVector& samples_out);
+
+    /** Return true if the phase-locked loop is locked. */
+    bool locked() const
+    {
+        return m_lock_cnt >= m_lock_delay;
+    }
+
+private:
+    Coeff   m_minfreq, m_maxfreq;
+    Coeff   m_iqfilter_b0, m_iqfilter_a1, m_iqfilter_a2;
+    Coeff   m_loopfilter_b0, m_loopfilter_b1;
+    Sample  m_iqfilter_i1, m_iqfilter_i2, m_iqfilter_q1, m_iqfilter_q2;
+    Sample  m_loopfilter_x1;
+    Sample  m_freq, m_phase;
+    Sample  m_minsignal;
+    int     m_lock_delay;
+    int     m_lock_cnt;
+};
 
 
 /** Complete decoder for FM broadcast signal. */
@@ -120,9 +154,9 @@ private:
     const unsigned int m_downsample;
     const bool      m_stereo_enabled;
     bool            m_stereo_detected;
-    Sample          m_if_level;
-    Sample          m_baseband_mean;
-    Sample          m_baseband_level;
+    double          m_if_level;
+    double          m_baseband_mean;
+    double          m_baseband_level;
 
     IQSampleVector  m_buf_iftuned;
     IQSampleVector  m_buf_iffiltered;
