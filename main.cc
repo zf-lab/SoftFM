@@ -478,7 +478,6 @@ int main(int argc, char **argv)
         adjust_gain(audiosamples, 0.5);
 
 // TODO : investigate I/Q imbalance to fix Radio4 noise
-// TODO : investigate if PLL receiver is better than phase discriminator at weak reception
 
 // TODO : show mono/stereo (switching)
 
@@ -523,7 +522,7 @@ int main(int argc, char **argv)
         output_thread.join();
     }
 
-    // TODO : cleanup
+    // No cleanup needed; everything handled by destructors.
 
     return 0;
 }

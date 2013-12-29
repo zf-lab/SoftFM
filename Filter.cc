@@ -276,7 +276,7 @@ void LowPassFilterRC::process(const SampleVector& samples_in,
      *   H(s) = 1 / (1 - s * timeconst)
      *
      * Discrete domain:
-     *   H(z) = (1 - exp(-1/timeconst)) / (1 - exp(-1/timeconst) / z)a
+     *   H(z) = (1 - exp(-1/timeconst)) / (1 - exp(-1/timeconst) / z)
      */
     Sample a1 = - exp(-1/m_timeconst);;
     Sample b0 = 1 + a1;

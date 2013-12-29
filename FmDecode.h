@@ -72,10 +72,10 @@ private:
 class FmDecoder
 {
 public:
-    static constexpr double default_deemphasis = 50;
-    static constexpr double default_bandwidth_if = 115000;
-    static constexpr double default_freq_dev     =  75000;
-    static constexpr double default_bandwidth_pcm = 15000;
+    static constexpr double default_deemphasis    =     50;
+    static constexpr double default_bandwidth_if  = 100000;
+    static constexpr double default_freq_dev      =  75000;
+    static constexpr double default_bandwidth_pcm =  15000;
 
     /**
      * Construct FM decoder.
