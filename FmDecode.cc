@@ -84,8 +84,17 @@ void PhaseDiscriminator::process(const IQSampleVector& samples_in,
 // Construct phase-locked loop.
 PilotPhaseLock::PilotPhaseLock(double freq, double bandwidth, double minsignal)
 {
-    // This is a type-2, 4th order phase-locked loop.
-    // I don't understand what I'm doing; hopefully it just works.
+    /*
+     * This is a type-2, 4th order phase-locked loop.
+     *
+     * Open-loop transfer function:
+     *   G(z) = K * (z - Qz) / ((z - Qp) * (z - Qp) * (z - 1) * (z - 1))
+     *   K  = 3.125 * (bandwidth * 2 * PI)**3
+     *   Qz = exp(-0.2 * bandwidth * 2*PI)
+     *   Qp = exp(-2.5 * bandwidth * 2*PI)
+     *
+     * I don't understand what I'm doing; hopefully it just works.
+     */
 
     // Set min/max locking frequencies.
     m_minfreq = (freq - bandwidth) * 2.0 * M_PI;
@@ -101,13 +110,16 @@ PilotPhaseLock::PilotPhaseLock(double freq, double bandwidth, double minsignal)
     double t = exp(-2.5 * bandwidth * 2.0 * M_PI);
     m_phasor_a1 = -2.0 * t;
     m_phasor_a2 = t * t;
-    m_phasor_b0 = m_phasor_a1 + m_phasor_a2;
+    m_phasor_b0 = 1 + m_phasor_a1 + m_phasor_a2;
 
     // Create loop filter to stabilize the loop.
-    // Zero at z = exp(-0.2 * bandwidth * 2*PI), 
-    m_loopfilter_b0 = 1.0;
-    m_loopfilter_b1 = - exp(-0.2 * bandwidth * 2.0 * M_PI);
-// TODO : loop gain 
+    // Filter has one Zero at z = exp(-0.2 * bandwidth * 2*PI).
+    m_loopfilter_b0 = 0.5 * bandwidth * 2.0 * M_PI;
+    m_loopfilter_b1 = - m_loopfilter_b0 * exp(-0.2 * bandwidth * 2.0 * M_PI);
+
+    // After the loop filter, the phase error is integrated to produce
+    // the frequency. Then the frequency is integrated to produce the phase.
+    // These two integrators form the two remaining poles, both at z = 1.
 
     // Reset frequency and phase.
     m_freq  = freq * 2.0 * M_PI;
@@ -159,10 +171,10 @@ void PilotPhaseLock::process(const SampleVector& samples_in,
             // Use simple linear approximation of arctan.
             phase_err = phasor_q / phasor_i;
         } else if (phasor_q > 0) {
-            // We are lagging more than 45 degrees behind the input.
+            // We are more than 45 degrees ahead of the input.
             phase_err = 1;
         } else {
-            // We are more than 45 degrees ahead of the input.
+            // We are lagging more than 45 degrees behind the input.
             phase_err = -1;
         }
 
@@ -174,7 +186,7 @@ void PilotPhaseLock::process(const SampleVector& samples_in,
         }
 
         // Run phase error through loop filter and update frequency estimate.
-        m_freq += m_loopfilter_b0 * phase_err
+        m_freq -= m_loopfilter_b0 * phase_err
                   + m_loopfilter_b1 * m_loopfilter_x1;
         m_loopfilter_x1 = phase_err;
 
