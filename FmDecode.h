@@ -168,6 +168,15 @@ private:
     void demod_stereo(const SampleVector& samples_baseband,
                       SampleVector& samples_stereo);
 
+    /** Duplicate mono signal in left/right channels. */
+    void mono_to_left_right(const SampleVector& samples_mono,
+                            SampleVector& audio);
+
+    /** Extract left/right channels from mono/stereo signals. */
+    void stereo_to_left_right(const SampleVector& samples_mono,
+                              const SampleVector& samples_stereo,
+                              SampleVector& audio);
+
     // Data members.
     const double    m_sample_rate_if;
     const double    m_sample_rate_baseband;
@@ -196,7 +205,9 @@ private:
     DownsampleFilter    m_resample_mono;
     DownsampleFilter    m_resample_stereo;
     HighPassFilterIir   m_dcblock_mono;
+    HighPassFilterIir   m_dcblock_stereo;
     LowPassFilterRC     m_deemph_mono;
+    LowPassFilterRC     m_deemph_stereo;
 };
 
 #endif
