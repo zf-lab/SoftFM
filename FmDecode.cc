@@ -1,4 +1,5 @@
 
+#include <cassert>
 #include <cmath>
 
 #include "FmDecode.h"
@@ -88,12 +89,13 @@ PilotPhaseLock::PilotPhaseLock(double freq, double bandwidth, double minsignal)
      * This is a type-2, 4th order phase-locked loop.
      *
      * Open-loop transfer function:
-     *   G(z) = K * (z - Qz) / ((z - Qp) * (z - Qp) * (z - 1) * (z - 1))
-     *   K  = 3.125 * (bandwidth * 2 * PI)**3
-     *   Qz = exp(-0.2 * bandwidth * 2*PI)
-     *   Qp = exp(-2.5 * bandwidth * 2*PI)
+     *   G(z) = K * (z - q1) / ((z - p1) * (z - p2) * (z - 1) * (z - 1))
+     *   K  = 3.788 * (bandwidth * 2 * Pi)**3
+     *   q1 = exp(-0.1153 * bandwidth * 2*Pi)
+     *   p1 = exp(-1.146 * bandwidth * 2*Pi)
+     *   p2 = exp(-5.331 * bandwidth * 2*Pi)
      *
-     * I don't understand what I'm doing; hopefully it just works.
+     * I don't understand what I'm doing; hopefully it will work.
      */
 
     // Set min/max locking frequencies.
@@ -104,24 +106,26 @@ PilotPhaseLock::PilotPhaseLock(double freq, double bandwidth, double minsignal)
     m_minsignal  = minsignal;
     m_lock_delay = int(10.0 / bandwidth);
     m_lock_cnt   = 0;
+    m_pilot_level = 0;
 
     // Create 2nd order filter for I/Q representation of phase error.
-    // Filter has both poles at z = exp(-2.5 * bandwidth * 2*PI).
-    double t = exp(-2.5 * bandwidth * 2.0 * M_PI);
-    m_phasor_a1 = -2.0 * t;
-    m_phasor_a2 = t * t;
+    // Filter has two poles, unit DC gain.
+    double p1 = exp(-1.146 * bandwidth * 2.0 * M_PI);
+    double p2 = exp(-5.331 * bandwidth * 2.0 * M_PI);
+    m_phasor_a1 = - p1 - p2;
+    m_phasor_a2 = p1 * p2;
     m_phasor_b0 = 1 + m_phasor_a1 + m_phasor_a2;
 
     // Create loop filter to stabilize the loop.
-    // Filter has one Zero at z = exp(-0.2 * bandwidth * 2*PI).
-    m_loopfilter_b0 = 0.5 * bandwidth * 2.0 * M_PI;
-    m_loopfilter_b1 = - m_loopfilter_b0 * exp(-0.2 * bandwidth * 2.0 * M_PI);
+    double q1 = exp(-0.1153 * bandwidth * 2.0 * M_PI);
+    m_loopfilter_b0 = 0.62 * bandwidth * 2.0 * M_PI;
+    m_loopfilter_b1 = - m_loopfilter_b0 * q1;
 
     // After the loop filter, the phase error is integrated to produce
     // the frequency. Then the frequency is integrated to produce the phase.
-    // These two integrators form the two remaining poles, both at z = 1.
+    // These integrators form the two remaining poles, both at z = 1.
 
-    // Reset frequency and phase.
+    // Initialize frequency and phase.
     m_freq  = freq * 2.0 * M_PI;
     m_phase = 0;
 
@@ -129,6 +133,7 @@ PilotPhaseLock::PilotPhaseLock(double freq, double bandwidth, double minsignal)
     m_phasor_i2 = 0;
     m_phasor_q1 = 0;
     m_phasor_q2 = 0;
+    m_loopfilter_x1 = 0;
 }
 
 
@@ -140,17 +145,23 @@ void PilotPhaseLock::process(const SampleVector& samples_in,
 
     samples_out.resize(n);
 
+    if (n > 0)
+        m_pilot_level = 1000.0;
+
     for (unsigned int i = 0; i < n; i++) {
 
         // Generate locked pilot tone.
         Sample psin = sin(m_phase);
         Sample pcos = cos(m_phase);
-        samples_out[i] = pcos;
+
+        // Generate double-frequency output.
+        // sin(2*x) = 2 * sin(x) * cos(x)
+        samples_out[i] = 2 * psin * pcos;
 
         // Multiply locked tone with input.
         Sample x = samples_in[i];
-        Sample phasor_i = pcos * x;
-        Sample phasor_q = psin * x;
+        Sample phasor_i = psin * x;
+        Sample phasor_q = pcos * x;
 
         // Run IQ phase error through low-pass filter.
         phasor_i = m_phasor_b0 * phasor_i
@@ -171,22 +182,18 @@ void PilotPhaseLock::process(const SampleVector& samples_in,
             // Use simple linear approximation of arctan.
             phase_err = phasor_q / phasor_i;
         } else if (phasor_q > 0) {
-            // We are more than 45 degrees ahead of the input.
+            // We are lagging more than 45 degrees behind the input.
             phase_err = 1;
         } else {
-            // We are lagging more than 45 degrees behind the input.
+            // We are more than 45 degrees ahead of the input.
             phase_err = -1;
         }
 
-        // Detect signal threshold.
-        if (phasor_i > m_minsignal) {
-            m_lock_cnt++;
-        } else {
-            m_lock_cnt = 0;
-        }
+        // Detect pilot level (conservative).
+        m_pilot_level = min(m_pilot_level, phasor_i);
 
         // Run phase error through loop filter and update frequency estimate.
-        m_freq -= m_loopfilter_b0 * phase_err
+        m_freq += m_loopfilter_b0 * phase_err
                   + m_loopfilter_b1 * m_loopfilter_x1;
         m_loopfilter_x1 = phase_err;
 
@@ -195,13 +202,17 @@ void PilotPhaseLock::process(const SampleVector& samples_in,
 
         // Update locked phase.
         m_phase += m_freq;
-        if (m_phase < -2.0 * M_PI)
-            m_phase += 2.0 * M_PI;
-        else if (m_phase > 2.0 * M_PI)
+        if (m_phase > 2.0 * M_PI)
             m_phase -= 2.0 * M_PI;
     }
 
-    m_lock_cnt = min(m_lock_delay, m_lock_cnt);
+    // Update lock status.
+    if (2 * m_pilot_level > m_minsignal) {
+        if (m_lock_cnt < m_lock_delay)
+            m_lock_cnt += n;
+    } else {
+        m_lock_cnt = 0;
+    }
 }
 
 
@@ -241,10 +252,24 @@ FmDecoder::FmDecoder(double sample_rate_if,
     // Construct DownsampleFilter for baseband
     , m_resample_baseband(8 * downsample, 0.4 / downsample, downsample, true)
 
+    // Construct PilotPhaseLock
+    , m_pilotpll(19000 * downsample / sample_rate_if,       // freq
+                 50 * downsample / sample_rate_if,          // bandwidth
+                 0.04)                                      // minsignal
+
     // Construct DownsampleFilter for mono channel
-    , m_resample_mono(int(sample_rate_if / downsample / 1000.0),
-                      bandwidth_pcm * downsample / sample_rate_if,
-                      sample_rate_if / downsample / sample_rate_pcm, false)
+    , m_resample_mono(
+        int(sample_rate_if / downsample / 1000.0),          // filter_order
+        bandwidth_pcm * downsample / sample_rate_if,        // cutoff
+        sample_rate_if / downsample / sample_rate_pcm,      // downsample
+        false)                                              // integer_factor
+
+    // Construct DownsampleFilter for stereo channel
+    , m_resample_stereo(
+        int(sample_rate_if / downsample / 1000.0),          // filter_order
+        bandwidth_pcm * downsample / sample_rate_if,        // cutoff
+        sample_rate_if / downsample / sample_rate_pcm,      // downsample
+        false)                                              // integer_factor
 
     // Construct HighPassFilterIir
     , m_dcblock_mono(30.0 / sample_rate_pcm)
@@ -285,8 +310,6 @@ void FmDecoder::process(const IQSampleVector& samples_in,
     m_baseband_mean  = 0.95 * m_baseband_mean + 0.05 * baseband_mean;
     m_baseband_level = 0.95 * m_baseband_level + 0.05 * baseband_rms;
 
-// TODO : stereo decoding
-
     // Extract mono audio signal.
     m_resample_mono.process(m_buf_baseband, m_buf_mono);
 
@@ -294,8 +317,45 @@ void FmDecoder::process(const IQSampleVector& samples_in,
     m_dcblock_mono.processInPlace(m_buf_mono);
     m_deemph_mono.processInPlace(m_buf_mono);
 
+    if (m_stereo_enabled) {
+
+        // Lock on stereo pilot.
+        m_pilotpll.process(m_buf_baseband, m_buf_rawstereo);
+        m_stereo_detected = m_pilotpll.locked();
+
+        if (m_stereo_enabled) {
+
+            // Demodulate stereo signal.
+            demod_stereo(m_buf_baseband, m_buf_rawstereo);
+
+            // Extract audio and downsample.
+            m_resample_stereo.process(m_buf_rawstereo, m_buf_stereo);
+
+// TODO : filters
+
+        }
+    }
+
+
 // TODO : stereo mixing
     audio = move(m_buf_mono);
+}
+
+
+// Demodulate stereo L-R signal.
+void FmDecoder::demod_stereo(const SampleVector& samples_baseband,
+                             SampleVector& samples_rawstereo)
+{
+    // Just multiply the baseband signal with the double-frequency pilot.
+    // And multiply by two to get the full amplitude.
+    // That's all.
+
+    unsigned int n = samples_baseband.size();
+    assert(n == samples_rawstereo.size());
+
+    for (unsigned int i = 0; i < n; i++) {
+        samples_rawstereo[i] *= 2 * samples_baseband[i];
+    }
 }
 
 /* end */

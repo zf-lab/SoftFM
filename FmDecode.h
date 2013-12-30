@@ -36,23 +36,34 @@ class PilotPhaseLock
 {
 public:
 
+// TODO : pulse-per-second
+
     /**
      * Construct phase-locked loop.
      *
-     * freq       :: center frequency of capture range relative to sample freq
+     * freq       :: 19 kHz center frequency relative to sample freq
      *               (0.5 is Nyquist)
-     * bandwidth  :: approximate bandwidth relative to sample frequency
+     * bandwidth  :: bandwidth relative to sample frequency
      * minsignal  :: minimum pilot amplitude
      */
     PilotPhaseLock(double freq, double bandwidth, double minsignal);
 
-    /** Process samples and extract pilot tone at unit amplitude. */
+    /**
+     * Process samples and extract 19 kHz pilot tone.
+     * Generate phase-locked 38 kHz tone with unit amplitude.
+     */
     void process(const SampleVector& samples_in, SampleVector& samples_out);
 
     /** Return true if the phase-locked loop is locked. */
     bool locked() const
     {
         return m_lock_cnt >= m_lock_delay;
+    }
+
+    /** Return detected amplitude of pilot signal. */
+    double get_pilot_level() const
+    {
+        return 2 * m_pilot_level;
     }
 
 private:
@@ -63,6 +74,7 @@ private:
     Sample  m_loopfilter_x1;
     Sample  m_freq, m_phase;
     Sample  m_minsignal;
+    Sample  m_pilot_level;
     int     m_lock_delay;
     int     m_lock_cnt;
 };
@@ -144,9 +156,18 @@ public:
         return m_baseband_level;
     }
 
-// TODO : stuff for stereo pilot locking
+    /** Return amplitude of stereo pilot (nominal level is 0.1). */
+    double get_pilot_level() const
+    {
+        return m_pilotpll.get_pilot_level();
+    }
 
 private:
+    /** Demodulate stereo L-R signal. */
+    void demod_stereo(const SampleVector& samples_baseband,
+                      SampleVector& samples_stereo);
+
+    // Data members.
     const double    m_sample_rate_if;
     const int       m_tuning_table_size;
     const int       m_tuning_shift;
@@ -162,12 +183,16 @@ private:
     IQSampleVector  m_buf_iffiltered;
     SampleVector    m_buf_baseband;
     SampleVector    m_buf_mono;
+    SampleVector    m_buf_rawstereo;
+    SampleVector    m_buf_stereo;
 
     FineTuner           m_finetuner;
     LowPassFilterFirIQ  m_iffilter;
     PhaseDiscriminator  m_phasedisc;
     DownsampleFilter    m_resample_baseband;
+    PilotPhaseLock      m_pilotpll;
     DownsampleFilter    m_resample_mono;
+    DownsampleFilter    m_resample_stereo;
     HighPassFilterIir   m_dcblock_mono;
     LowPassFilterRC     m_deemph_mono;
 };

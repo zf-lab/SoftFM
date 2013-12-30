@@ -451,6 +451,7 @@ int main(int argc, char **argv)
     SampleVector audiosamples;
     bool inbuf_length_warning = false;
     double audio_level = 0;
+    bool got_stereo = false;
 
     // Main loop.
     for (unsigned int block = 0; !stop_flag.load(); block++) {
@@ -480,8 +481,6 @@ int main(int argc, char **argv)
 
 // TODO : investigate I/Q imbalance to fix Radio4 noise
 
-// TODO : show mono/stereo (switching)
-
         fprintf(stderr,
                 "\rblk=%6d  freq=%8.4fMHz  IF=%+5.1fdB  BB=%+5.1fdB  audio=%+5.1fdB ",
                 block,
@@ -497,6 +496,15 @@ int main(int argc, char **argv)
                     buflen / nchannel / double(pcmrate));
         }
         fflush(stderr);
+
+        if (fm.stereo_detected() != got_stereo) {
+            got_stereo = fm.stereo_detected();
+            if (got_stereo)
+                fprintf(stderr, "\ngot stereo signal (pilot level = %f)\n",
+                        fm.get_pilot_level());
+            else
+                fprintf(stderr, "\nlost stereo signal\n");
+        }
 
         // Throw away first block. It is noisy because IF filters
         // are still starting up.
