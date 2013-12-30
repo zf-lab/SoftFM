@@ -230,6 +230,7 @@ FmDecoder::FmDecoder(double sample_rate_if,
 
     // Initialize member fields
     : m_sample_rate_if(sample_rate_if)
+    , m_sample_rate_baseband(sample_rate_if / downsample)
     , m_tuning_table_size(64)
     , m_tuning_shift(lrint(-64.0 * tuning_offset / sample_rate_if))
     , m_freq_dev(freq_dev)
@@ -253,29 +254,30 @@ FmDecoder::FmDecoder(double sample_rate_if,
     , m_resample_baseband(8 * downsample, 0.4 / downsample, downsample, true)
 
     // Construct PilotPhaseLock
-    , m_pilotpll(19000 * downsample / sample_rate_if,       // freq
-                 50 * downsample / sample_rate_if,          // bandwidth
+    , m_pilotpll(pilot_freq / m_sample_rate_baseband,       // freq
+                 50 / m_sample_rate_baseband,               // bandwidth
                  0.04)                                      // minsignal
 
     // Construct DownsampleFilter for mono channel
     , m_resample_mono(
-        int(sample_rate_if / downsample / 1000.0),          // filter_order
-        bandwidth_pcm * downsample / sample_rate_if,        // cutoff
-        sample_rate_if / downsample / sample_rate_pcm,      // downsample
+        int(m_sample_rate_baseband / 1000.0),               // filter_order
+        bandwidth_pcm / m_sample_rate_baseband,             // cutoff
+        m_sample_rate_baseband / sample_rate_pcm,           // downsample
         false)                                              // integer_factor
 
     // Construct DownsampleFilter for stereo channel
     , m_resample_stereo(
-        int(sample_rate_if / downsample / 1000.0),          // filter_order
-        bandwidth_pcm * downsample / sample_rate_if,        // cutoff
-        sample_rate_if / downsample / sample_rate_pcm,      // downsample
+        int(m_sample_rate_baseband / 1000.0),               // filter_order
+        bandwidth_pcm / m_sample_rate_baseband,             // cutoff
+        m_sample_rate_baseband / sample_rate_pcm,           // downsample
         false)                                              // integer_factor
 
     // Construct HighPassFilterIir
     , m_dcblock_mono(30.0 / sample_rate_pcm)
 
     // Construct LowwPassFilterRC
-    , m_deemph_mono((deemphasis == 0) ? 1.0 : (deemphasis * sample_rate_pcm * 1.0e-6))
+    , m_deemph_mono((deemphasis == 0) ?
+                    1.0 : (deemphasis * sample_rate_pcm * 1.0e-6))
 
 {
     // nothing more to do
@@ -314,8 +316,8 @@ void FmDecoder::process(const IQSampleVector& samples_in,
     m_resample_mono.process(m_buf_baseband, m_buf_mono);
 
     // DC blocking and de-emphasis.
-    m_dcblock_mono.processInPlace(m_buf_mono);
-    m_deemph_mono.processInPlace(m_buf_mono);
+    m_dcblock_mono.process_inplace(m_buf_mono);
+    m_deemph_mono.process_inplace(m_buf_mono);
 
     if (m_stereo_enabled) {
 

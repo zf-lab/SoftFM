@@ -88,6 +88,7 @@ public:
     static constexpr double default_bandwidth_if  = 100000;
     static constexpr double default_freq_dev      =  75000;
     static constexpr double default_bandwidth_pcm =  15000;
+    static constexpr double pilot_freq            =  19000;
 
     /**
      * Construct FM decoder.
@@ -169,6 +170,7 @@ private:
 
     // Data members.
     const double    m_sample_rate_if;
+    const double    m_sample_rate_baseband;
     const int       m_tuning_table_size;
     const int       m_tuning_shift;
     const double    m_freq_dev;

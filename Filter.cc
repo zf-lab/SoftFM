@@ -296,7 +296,7 @@ void LowPassFilterRC::process(const SampleVector& samples_in,
 
 
 // Process samples in-place.
-void LowPassFilterRC::processInPlace(SampleVector& samples)
+void LowPassFilterRC::process_inplace(SampleVector& samples)
 {
     Sample a1 = - exp(-1/m_timeconst);;
     Sample b0 = 1 + a1;
@@ -435,7 +435,7 @@ void HighPassFilterIir::process(const SampleVector& samples_in,
 
 
 // Process samples in-place.
-void HighPassFilterIir::processInPlace(SampleVector& samples)
+void HighPassFilterIir::process_inplace(SampleVector& samples)
 {
     unsigned int n = samples.size();
 

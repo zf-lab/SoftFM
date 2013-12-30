@@ -107,7 +107,7 @@ public:
     void process(const SampleVector& samples_in, SampleVector& samples_out);
 
     /** Process samples in-place. */
-    void processInPlace(SampleVector& samples);
+    void process_inplace(SampleVector& samples);
 
 private:
     double  m_timeconst;
@@ -154,7 +154,7 @@ public:
     void process(const SampleVector& samples_in, SampleVector& samples_out);
 
     /** Process samples in-place. */
-    void processInPlace(SampleVector& samples);
+    void process_inplace(SampleVector& samples);
 
 private:
     Sample b0, b1, b2, a1, a2;
