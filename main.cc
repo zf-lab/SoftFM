@@ -314,6 +314,7 @@ int main(int argc, char **argv)
                 if (!parse_opt(optarg, bufsecs) || bufsecs < 0) {
                     badarg("-b");
                 }
+                break;
             default:
                 usage();
                 fprintf(stderr, "ERROR: Unknown option\n");
