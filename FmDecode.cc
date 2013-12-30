@@ -216,6 +216,8 @@ FmDecoder::FmDecoder(double sample_rate_if,
                      double freq_dev,
                      double bandwidth_pcm,
                      unsigned int downsample)
+
+    // Initialize member fields
     : m_sample_rate_if(sample_rate_if)
     , m_tuning_table_size(64)
     , m_tuning_shift(lrint(-64.0 * tuning_offset / sample_rate_if))
@@ -226,18 +228,32 @@ FmDecoder::FmDecoder(double sample_rate_if,
     , m_if_level(0)
     , m_baseband_mean(0)
     , m_baseband_level(0)
+
+    // Construct FineTuner
     , m_finetuner(m_tuning_table_size, m_tuning_shift)
+
+    // Construct LowPassFilterFirIQ
     , m_iffilter(10, bandwidth_if / sample_rate_if)
+
+    // Construct PhaseDiscriminator
     , m_phasedisc(freq_dev / sample_rate_if)
-    , m_resample_baseband(6 * downsample,
-                          0.5 / downsample,
-                          downsample, true)
-    , m_resample_mono(int(15 * sample_rate_if / downsample / bandwidth_pcm),
+
+    // Construct DownsampleFilter for baseband
+    , m_resample_baseband(8 * downsample, 0.4 / downsample, downsample, true)
+
+    // Construct DownsampleFilter for mono channel
+    , m_resample_mono(int(sample_rate_if / downsample / 1000.0),
                       bandwidth_pcm * downsample / sample_rate_if,
                       sample_rate_if / downsample / sample_rate_pcm, false)
+
+    // Construct HighPassFilterIir
     , m_dcblock_mono(30.0 / sample_rate_pcm)
+
+    // Construct LowwPassFilterRC
     , m_deemph_mono((deemphasis == 0) ? 1.0 : (deemphasis * sample_rate_pcm * 1.0e-6))
+
 {
+    // nothing more to do
 }
 
 
