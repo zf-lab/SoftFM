@@ -1,0 +1,10 @@
+* write README.txt
+* push to github
+* implement WAV file writing
+* implement stereo pilot PPS
+* implement RDS decoding
+* figure out why we sometimes lose stereo lock
+* investigate problem at low IF sample rates; apparently librtlsdr is not telling the truth about the actual sample rate.
+* look at I/Q balance to improve weak stations
+* look at hardware gain settings to improve weak stations
+* consider FM demodulation with PLL instead of phase discriminator
