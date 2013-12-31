@@ -1,4 +1,6 @@
 
+#define _FILE_OFFSET_BITS 64
+
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
