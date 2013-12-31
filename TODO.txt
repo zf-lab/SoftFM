@@ -1,9 +1,9 @@
-* write README.txt
 * push to github
 * implement WAV file writing
 * implement stereo pilot PPS
 * implement RDS decoding
 * figure out why we sometimes lose stereo lock
+* it looks like IF level sometimes varies so much that it saturates the receiver; perhaps this can be solved by dynamically managing the hardware gain in response to level measurements
 * investigate problem at low IF sample rates; apparently librtlsdr is not telling the truth about the actual sample rate.
 * look at I/Q balance to improve weak stations
 * look at hardware gain settings to improve weak stations
