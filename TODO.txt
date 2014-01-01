@@ -1,9 +1,11 @@
-* implement WAV file writing
-* implement stereo pilot pulse-per-second
-* implement RDS decoding
+* (feature) implement WAV file writing
+* (feature) implement stereo pilot pulse-per-second
+* (quality) consider DC offset calibration
+* (speedup) maybe replace high-order FIR downsampling filter with 2nd order butterworth followed by lower order FIR filter
 * figure out why we sometimes lose stereo lock
 * it looks like IF level sometimes varies so much that it saturates the receiver; perhaps this can be solved by dynamically managing the hardware gain in response to level measurements
 * investigate problem at low IF sample rates; it seems that librtlsdr is not telling the truth about the actual sample rate.
-* figure out if I/Q balance can improve weak stations
-* figure out if hardware gain settings can improve weak stations
-* consider FM demodulation with PLL instead of phase discriminator
+* (quality) figure out if I/Q balance can improve weak stations
+* (quality) figure out if hardware gain settings can improve weak stations
+* (feature) implement RDS decoding
+* (quality) consider FM demodulation with PLL instead of phase discriminator
