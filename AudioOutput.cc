@@ -22,11 +22,11 @@
 
 #define _FILE_OFFSET_BITS 64
 
-#include <string.h>
-#include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <cstdio>
+#include <cstring>
+#include <cerrno>
 #include <algorithm>
 
 #include <alsa/asoundlib.h>

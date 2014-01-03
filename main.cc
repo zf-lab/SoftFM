@@ -200,7 +200,7 @@ static void handle_sigterm(int sig)
 {
     stop_flag.store(true);
 
-    string msg = "Got signal ";
+    string msg = "\nGot signal ";
     msg += strsignal(sig);
     msg += ", stopping ...\n";
 
