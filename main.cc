@@ -264,7 +264,7 @@ int main(int argc, char **argv)
     enum OutputMode { MODE_RAW, MODE_WAV, MODE_ALSA };
     OutputMode outmode = MODE_ALSA;
     string  filename;
-    string  devname("default");
+    string  alsadev("default");
     double  bufsecs = -1;
 
     fprintf(stderr,
@@ -321,7 +321,7 @@ int main(int argc, char **argv)
             case 'P':
                 outmode = MODE_ALSA;
                 if (optarg != NULL)
-                    devname = optarg;
+                    alsadev = optarg;
                 break;
             case 'b':
                 if (!parse_opt(optarg, bufsecs) || bufsecs < 0) {
@@ -435,13 +435,19 @@ int main(int argc, char **argv)
     unique_ptr<AudioOutput> audio_output;
     switch (outmode) {
         case MODE_RAW:
+            fprintf(stderr, "Writing raw 16-bit audio samples to '%s'\n",
+                    filename.c_str());
             audio_output.reset(new RawAudioOutput(filename));
             break;
         case MODE_WAV:
+            fprintf(stderr, "Writing audio samples to '%s'\n",
+                    filename.c_str());
             audio_output.reset(new WavAudioOutput(filename, pcmrate, stereo));
             break;
         case MODE_ALSA:
-            audio_output.reset(new AlsaAudioOutput(devname, pcmrate, stereo));
+            fprintf(stderr, "Playing audio to ALSA device '%s'\n",
+                    alsadev.c_str());
+            audio_output.reset(new AlsaAudioOutput(alsadev, pcmrate, stereo));
             break;
     }
 
