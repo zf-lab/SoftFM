@@ -2,6 +2,7 @@
 #define SOFTFM_AUDIOOUTPUT_H
 
 #include <cstdint>
+#include <cstdio>
 #include <string>
 #include <vector>
 #include "SoftFM.h"
@@ -95,7 +96,16 @@ public:
     bool write(const SampleVector& samples);
 
 private:
-// TODO
+
+    static void encode_chunk_id(uint8_t * ptr, const char * chunkname);
+
+    template <typename T>
+    static void set_value(uint8_t * ptr, T value);
+
+    const unsigned numberOfChannels;
+    const unsigned sampleRate;
+    FILE *m_stream;
+    std::vector<uint8_t> m_bytebuf;
 };
 
 

@@ -438,7 +438,8 @@ int main(int argc, char **argv)
             audio_output.reset(new RawAudioOutput(filename));
             break;
         case MODE_WAV:
-            abort();
+            audio_output.reset(new WavAudioOutput(filename, pcmrate, stereo));
+            break;
         case MODE_ALSA:
             audio_output.reset(new AlsaAudioOutput(devname, pcmrate, stereo));
             break;
