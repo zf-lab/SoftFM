@@ -141,10 +141,9 @@ WavAudioOutput::WavAudioOutput(const std::string& filename,
         return;
     }
 
-    // Write a 44-byte placeholder for the header.
+    // Write initial header with a dummy sample count.
     // This will be replaced with the actual header once the WavFile is closed.
-    size_t k = fwrite("[44-byte WAV-file header -- to be filled in]", 1, 44, m_stream);
-    if (k != 44) {
+    if (!write_header(0x7fff0000)) {
         m_error = "can not write to '" + filename + "' (" +
                   strerror(errno) + ")";
         m_zombie = true;
@@ -157,16 +156,9 @@ WavAudioOutput::~WavAudioOutput()
 {
     // We need to go back and fill in the header ...
 
-    const unsigned bytesPerSample = 2;
-    const unsigned bitsPerSample  = 16;
-
-    enum wFormatTagId
-    {
-        WAVE_FORMAT_PCM        = 0x0001,
-        WAVE_FORMAT_IEEE_FLOAT = 0x0003
-    };
-
     if (!m_zombie) {
+
+        const unsigned bytesPerSample = 2;
 
         const long currentPosition = ftell(m_stream);
 
@@ -176,28 +168,10 @@ WavAudioOutput::~WavAudioOutput()
 
         assert(totalNumberOfSamples % numberOfChannels == 0);
 
-        // synthesize header
-
-        uint8_t wavHeader[44];
-
-        encode_chunk_id    (wavHeader +  0, "RIFF");
-        set_value<uint32_t>(wavHeader +  4, 36 + totalNumberOfSamples * bytesPerSample);
-        encode_chunk_id    (wavHeader +  8, "WAVE");
-        encode_chunk_id    (wavHeader + 12, "fmt ");
-        set_value<uint32_t>(wavHeader + 16, 16);
-        set_value<uint16_t>(wavHeader + 20, WAVE_FORMAT_PCM);
-        set_value<uint16_t>(wavHeader + 22, numberOfChannels);
-        set_value<uint32_t>(wavHeader + 24, sampleRate                                    ); // sample rate
-        set_value<uint32_t>(wavHeader + 28, sampleRate * numberOfChannels * bytesPerSample); // byte rate
-        set_value<uint16_t>(wavHeader + 32,              numberOfChannels * bytesPerSample); // block size
-        set_value<uint16_t>(wavHeader + 34, bitsPerSample);
-        encode_chunk_id    (wavHeader + 36, "data");
-        set_value<uint32_t>(wavHeader + 40, totalNumberOfSamples * bytesPerSample);
-
         // Put header in front
 
         if (fseek(m_stream, 0, SEEK_SET) == 0) {
-            fwrite(wavHeader, 1, 44, m_stream);
+            write_header(totalNumberOfSamples);
         }
     }
 
@@ -228,6 +202,42 @@ bool WavAudioOutput::write(const SampleVector& samples)
     }
 
     return true;
+}
+
+
+// (Re)write .WAV header.
+bool WavAudioOutput::write_header(unsigned int nsamples)
+{
+    const unsigned bytesPerSample = 2;
+    const unsigned bitsPerSample  = 16;
+
+    enum wFormatTagId
+    {
+        WAVE_FORMAT_PCM        = 0x0001,
+        WAVE_FORMAT_IEEE_FLOAT = 0x0003
+    };
+
+    assert(nsamples % numberOfChannels == 0);
+
+    // synthesize header
+
+    uint8_t wavHeader[44];
+
+    encode_chunk_id    (wavHeader +  0, "RIFF");
+    set_value<uint32_t>(wavHeader +  4, 36 + nsamples * bytesPerSample);
+    encode_chunk_id    (wavHeader +  8, "WAVE");
+    encode_chunk_id    (wavHeader + 12, "fmt ");
+    set_value<uint32_t>(wavHeader + 16, 16);
+    set_value<uint16_t>(wavHeader + 20, WAVE_FORMAT_PCM);
+    set_value<uint16_t>(wavHeader + 22, numberOfChannels);
+    set_value<uint32_t>(wavHeader + 24, sampleRate                                    ); // sample rate
+    set_value<uint32_t>(wavHeader + 28, sampleRate * numberOfChannels * bytesPerSample); // byte rate
+    set_value<uint16_t>(wavHeader + 32,              numberOfChannels * bytesPerSample); // block size
+    set_value<uint16_t>(wavHeader + 34, bitsPerSample);
+    encode_chunk_id    (wavHeader + 36, "data");
+    set_value<uint32_t>(wavHeader + 40, nsamples * bytesPerSample);
+
+    return fwrite(wavHeader, 1, 44, m_stream) == 44;
 }
 
 

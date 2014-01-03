@@ -97,6 +97,9 @@ public:
 
 private:
 
+    /** (Re-)Write .WAV header. */
+    bool write_header(unsigned int nsamples);
+
     static void encode_chunk_id(uint8_t * ptr, const char * chunkname);
 
     template <typename T>
