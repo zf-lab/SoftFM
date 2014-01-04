@@ -14,6 +14,10 @@ RtlSdrSource::RtlSdrSource(int dev_index)
 {
     int r;
 
+    const char *devname = rtlsdr_get_device_name(dev_index);
+    if (devname != NULL)
+        m_devname = devname;
+
     r = rtlsdr_open(&m_dev, dev_index);
     if (r < 0) {
         m_error =  "Failed to open RTL-SDR device (";

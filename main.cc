@@ -293,9 +293,8 @@ int main(int argc, char **argv)
                 }
                 break;
             case 'd':
-                if (!parse_opt(optarg, devidx) || devidx < 0) {
-                    badarg("-d");
-                }
+                if (!parse_opt(optarg, devidx))
+                    devidx = -1;
                 break;
             case 's':
                 if (!parse_opt(optarg, ifrate) || ifrate <= 0) {
@@ -366,6 +365,17 @@ int main(int argc, char **argv)
     if (ifrate >= 5 * FmDecoder::default_bandwidth_if) {
         tuner_freq += 0.25 * ifrate;
     }
+
+    vector<string> devnames = RtlSdrSource::get_device_names();
+    if (devidx < 0 || (unsigned int)devidx >= devnames.size()) {
+        fprintf(stderr, "ERROR: invalid device index %d\n", devidx);
+        fprintf(stderr, "Found %u devices:\n", (unsigned int)devnames.size());
+        for (unsigned int i = 0; i < devnames.size(); i++) {
+            fprintf(stderr, "%2u: %s\n", i, devnames[i].c_str());
+        }
+        exit(1);
+    }
+    fprintf(stderr, "using device %d: %s\n", devidx, devnames[devidx].c_str());
 
     // Open RTL-SDR device.
     RtlSdrSource rtlsdr(devidx);

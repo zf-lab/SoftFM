@@ -45,6 +45,12 @@ public:
     /** Return a list of supported tuner gain settings in dB. */
     std::vector<double> get_tuner_gains();
 
+    /** Return name of opened RTL-SDR device. */
+    std::string get_device_name() const
+    {
+        return m_devname;
+    }
+
     /**
      * Fetch a bunch of samples from the device.
      *
@@ -73,6 +79,7 @@ public:
 private:
     struct rtlsdr_dev * m_dev;
     int                 m_block_length;
+    std::string         m_devname;
     std::string         m_error;
 };
 
