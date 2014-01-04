@@ -214,7 +214,7 @@ void usage()
     fprintf(stderr,
             "Usage: softfm -f freq [options]\n"
             "  -f freq       Frequency of radio station in Hz\n"
-            "  -d devidx     RTL-SDR device index (default 0)\n"
+            "  -d devidx     RTL-SDR device index, 'list' to show device list (default 0)\n"
             "  -s ifrate     IF sample rate in Hz (default 1000000)\n"
             "  -r pcmrate    Audio sample rate in Hz (default 48000 Hz)\n"
             "  -M            Disable stereo decoding\n"
@@ -334,6 +334,17 @@ int main(int argc, char **argv)
         }
     }
 
+    vector<string> devnames = RtlSdrSource::get_device_names();
+    if (devidx < 0 || (unsigned int)devidx >= devnames.size()) {
+        fprintf(stderr, "ERROR: invalid device index %d\n", devidx);
+        fprintf(stderr, "Found %u devices:\n", (unsigned int)devnames.size());
+        for (unsigned int i = 0; i < devnames.size(); i++) {
+            fprintf(stderr, "%2u: %s\n", i, devnames[i].c_str());
+        }
+        exit(1);
+    }
+    fprintf(stderr, "using device %d: %s\n", devidx, devnames[devidx].c_str());
+
     if (freq <= 0) {
         usage();
         fprintf(stderr, "ERROR: Specify a tuning frequency\n");
@@ -365,17 +376,6 @@ int main(int argc, char **argv)
     if (ifrate >= 5 * FmDecoder::default_bandwidth_if) {
         tuner_freq += 0.25 * ifrate;
     }
-
-    vector<string> devnames = RtlSdrSource::get_device_names();
-    if (devidx < 0 || (unsigned int)devidx >= devnames.size()) {
-        fprintf(stderr, "ERROR: invalid device index %d\n", devidx);
-        fprintf(stderr, "Found %u devices:\n", (unsigned int)devnames.size());
-        for (unsigned int i = 0; i < devnames.size(); i++) {
-            fprintf(stderr, "%2u: %s\n", i, devnames[i].c_str());
-        }
-        exit(1);
-    }
-    fprintf(stderr, "using device %d: %s\n", devidx, devnames[devidx].c_str());
 
     // Open RTL-SDR device.
     RtlSdrSource rtlsdr(devidx);
