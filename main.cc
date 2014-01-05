@@ -215,7 +215,7 @@ void usage()
             "Usage: softfm -f freq [options]\n"
             "  -f freq       Frequency of radio station in Hz\n"
             "  -d devidx     RTL-SDR device index, 'list' to show device list (default 0)\n"
-            "  -s ifrate     IF sample rate in Hz (default 1000000)\n"
+            "  -s ifrate     IF sample rate in Hz (default 1000000, min 900001)\n"
             "  -r pcmrate    Audio sample rate in Hz (default 48000 Hz)\n"
             "  -M            Disable stereo decoding\n"
             "  -R filename   Write audio data as raw S16_LE samples\n"
@@ -297,7 +297,8 @@ int main(int argc, char **argv)
                     devidx = -1;
                 break;
             case 's':
-                if (!parse_opt(optarg, ifrate) || ifrate <= 0) {
+                // NOTE: RTL does not suppor sample rate 900 kS/s or lower
+                if (!parse_opt(optarg, ifrate) || ifrate <= 900000) {
                     badarg("-s");
                 }
                 break;
@@ -351,12 +352,6 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    if (3 * FmDecoder::default_bandwidth_if > ifrate) {
-        fprintf(stderr, "ERROR: IF sample rate must be at least %.0f Hz\n",
-                        3 * FmDecoder::default_bandwidth_if);
-        exit(1);
-    }
-
     // Catch Ctrl-C and SIGTERM
     struct sigaction sigact;
     sigact.sa_handler = handle_sigterm;
@@ -372,10 +367,7 @@ int main(int argc, char **argv)
     }
 
     // Intentionally tune at a higher frequency to avoid DC offset.
-    double tuner_freq = freq;
-    if (ifrate >= 5 * FmDecoder::default_bandwidth_if) {
-        tuner_freq += 0.25 * ifrate;
-    }
+    double tuner_freq = freq + 0.25 * ifrate;
 
     // Open RTL-SDR device.
     RtlSdrSource rtlsdr(devidx);
