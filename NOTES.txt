@@ -1,0 +1,17 @@
+
+This file contains random notitions
+-----------------------------------
+
+Sample rates between 301000 Hz and 900000 Hz (inclusive) are not supported.
+They cause an invalid configuration of the RTL chip.
+  rsamp_ratio = 28.8 MHz * 2**22 / sample_rate
+  If bit 27 and bit 28 of rsamp_ratio are different, the RTL chip malfunctions.
+
+The RTL chip has a configurable 32-tap FIR filter.
+RTL-SDR currently configures it for cutoff at 1.2 MHz (2.4 MS/s).
+
+Casual test of ADC errors:
+ * DC offset in order of 1 code step
+ * I/Q gain mismatch in order of 4%
+ * I/Q phase mismatch in order of 1% of sample interval
+
