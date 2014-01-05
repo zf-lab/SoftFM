@@ -120,6 +120,7 @@ def spectrum(d, fs=1, nfft=None, sortfreq=False):
 
 
 def pll(d, centerfreq, bandwidth):
+    """Simulate the stereo pilot PLL."""
 
     minfreq = (centerfreq - bandwidth) * 2 * numpy.pi
     maxfreq = (centerfreq + bandwidth) * 2 * numpy.pi
