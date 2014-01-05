@@ -2,7 +2,7 @@
 This file contains random notitions
 -----------------------------------
 
-Sample rates between 301000 Hz and 900000 Hz (inclusive) are not supported.
+Sample rates between 300001 Hz and 900000 Hz (inclusive) are not supported.
 They cause an invalid configuration of the RTL chip.
   rsamp_ratio = 28.8 MHz * 2**22 / sample_rate
   If bit 27 and bit 28 of rsamp_ratio are different, the RTL chip malfunctions.
