@@ -15,7 +15,7 @@ def readRawSamples(fname):
     d = d.astype(numpy.float64)
     d = (d - 128) / 128.0
 
-    return d[::2] - 1j * d[1::2]
+    return d[::2] + 1j * d[1::2]
 
 
 def lazyRawSamples(fname, blocklen):
@@ -29,7 +29,7 @@ def lazyRawSamples(fname, blocklen):
         d = numpy.fromstring(d, dtype=numpy.uint8)
         d = d.astype(numpy.float64)
         d = (d - 128) / 128.0
-        yield d[::2] - 1j * d[1::2]
+        yield d[::2] + 1j * d[1::2]
 
 
 def freqShiftIQ(d, freqshift):
