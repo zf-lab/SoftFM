@@ -15,3 +15,33 @@ Casual test of ADC errors:
  * I/Q gain mismatch in order of 4%
  * I/Q phase mismatch in order of 1% of sample interval
 
+With tuner in auto-gain mode, device autonomously switches between gain
+settings during a run. The tuner gain seems to switch between ~ 24 dB
+and ~ 34 dB without intermediate steps.
+
+With RTL in AGC mode, the level of the digital sample stream is normalized
+to -6 dBFS. Unknown whether this is an analog or digital gain stage.
+Unknown whether AGC mode is coupled to Elonics IF gain or purely
+a digital thing in the RTL chip.
+Does this improve SNR or not?
+
+Default settings in librtlsdr:
+  Elonics LNA gain: when auto tuner gain: autonomous control with slow update
+                    otherwise gain as configured via rtlsdr_set_tuner_gain
+  Elonics mixer gain: autonomous control disabled,
+                      gain depending on rtlsdr_set_tuner_gain
+  Elonics IF linearity: optimize sensitivity (default), auto switch disabled
+  Elonics IF gain: +6, +0, +0, +0, +9, +9 (non-standard mode)
+  Elonics IF filters: matched to sample rate (note this may not be optimal)
+  RTL AGC mode off
+
+
+Local radio stations:
+radio2      92600000  (good)
+radio3      96800000  (good)
+radio4      94300000  (bad)
+qmusic     100700000  (medium)
+radio538   102100000  (medium)
+radio10    103800000  (bad)
+radio west  89300000  (medium)
+

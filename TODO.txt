@@ -1,12 +1,13 @@
-* (experiment) measure raw signal for radio3, radio4 for ~ 1 minute
-   * different gain settings
-   * with/without RTL AGC mode
-   * with several IF gain settings
-* confirm theories about effect of gain, IF gain, AGC
+* (experiment) measure raw signal with several IF gain settings
+  with/without AGC mode
+* figure out whether AGC mode is coupled to the Elonics IF gain settings
+  or purely an RTL-internal thing
+
 * look for effect of gain on baseband SNR
 * look for effect of ADC calibration on baseband SNR
 * look for effect of IF bandwidth on baseband SNR
 
+* (experiment) try if RTL AGC mode improves FM decoding
 * (experiment) try if RTL2832 FIR filter can be optimized
 * (feature) support 'M' 'k' suffixes for sample rates and tuning frequency
 * (feature) implement off-line FM decoder in Python for experimentation
