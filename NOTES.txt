@@ -16,14 +16,21 @@ Casual test of ADC errors:
  * I/Q phase mismatch in order of 1% of sample interval
 
 With tuner in auto-gain mode, device autonomously switches between gain
-settings during a run. The tuner gain seems to switch between ~ 24 dB
+settings during a run. The LNA gain seems to switch between ~ 24 dB
 and ~ 34 dB without intermediate steps.
 
 With RTL in AGC mode, the level of the digital sample stream is normalized
-to -6 dBFS. Unknown whether this is an analog or digital gain stage.
-Unknown whether AGC mode is coupled to Elonics IF gain or purely
-a digital thing in the RTL chip.
+to -6 dB FS.
+Unknown whether this is an analog or digital gain stage.
 Does this improve SNR or not?
+
+At first I suspected that AGC mode may be a cooperation between the RTL and
+the Elonics tuner. I thought that the RTL would monitor the level and send
+digital control signals to the Elonics to dynamically change the tuner IF gain.
+However that is in fact NOT what happens. (Manually changing IF gain in AGC
+mode causes a brief level spike, while manually rewriting the same IF gain in
+AGC mode does not have any effect).
+It seems more likely that AGC is a digital gain in the downsampling filter.
 
 Default settings in librtlsdr:
   Elonics LNA gain: when auto tuner gain: autonomous control with slow update
