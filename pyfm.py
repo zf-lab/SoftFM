@@ -6,6 +6,7 @@ import sys
 import types
 import numpy
 import numpy.fft
+import scipy.signal
 
 
 def readRawSamples(fname):
@@ -49,6 +50,52 @@ def freqShiftIQ(d, freqshift):
         n = len(d)
         w = numpy.exp(numpy.arange(n) * (2j * numpy.pi * freqshift))
         return d * w
+
+
+def firFilter(d, coeff):
+    """Apply FIR filter to sample stream."""
+
+    # lazy version
+    def g(d, coeff):
+        prev = None
+        for b in d:
+            if prev is None:
+                yield scipy.signal.lfilter(coeff, 1, b)
+                prev = b
+            else:
+                k = min(len(prev), len(coeff))
+                x = numpy.concatenate((prev[-k:], b))
+                y = scipy.signal.lfilter(coeff, 1, x)
+                yield y[k:]
+                if len(coeff) > len(b):
+                    prev = x
+                else:
+                    prev = b
+
+    if isinstance(d, types.GeneratorType):
+        return g(d, coeff)
+    else:
+        return scipy.signal.lfilter(coeff, 1, d)
+
+
+def quadratureDetector(d):
+    """FM frequency detector based on quadrature demodulation."""
+
+    # lazy version
+    def g(d):
+        prev = None
+        for b in d:
+            if prev is None:
+                yield numpy.angle(b[1:] * b[:-1].conj())
+            else:
+                x = numpy.concatenate((prev[-1:], b[:-1]))
+                yield numpy.angle(b * x.conj())
+            prev = b
+
+    if isinstance(d, types.GeneratorType):
+        return g(d)
+    else:
+        return numpy.angle(d[1:] * d[:-1].conj())
 
 
 def spectrum(d, fs=1, nfft=None, sortfreq=False):
@@ -184,4 +231,50 @@ def pll(d, centerfreq, bandwidth):
 
     return y, phasei, phaseq, phaseerr, freq, phase
 
+
+def pilotLevel(d, fs, freqshift, bw=150.0e3):
+    """Calculate level of the 19 kHz pilot vs noise floor in the guard band.
+
+    d         :: block of raw I/Q samples or lazy I/Q sample stream
+    fs        :: sample frequency in Hz
+    freqshift :: frequency offset in Hz
+    bw        :: half-bandwidth of IF signal in Hz
+
+    Return (pilot_power, guard_floor, noise)
+    where pilot_power is the power of the pilot tone in dB
+          guard_floor is the noise floor in the guard band in dB/Hz
+          noise       is guard_floor - pilot_power in dB/Hz
+    """
+
+    # Shift frequency
+    if freqshift != 0:
+        d = freqShiftIQ(d, freqshift / float(fs))
+
+    # Filter
+    b = scipy.signal.firwin(31, 2.0 * bw / fs, window='nuttall')
+    d = firFilter(d, b)
+
+    # Demodulate FM.
+    d = quadratureDetector(d)
+
+    # Power spectral density.
+    f, q = spectrum(d, fs=fs, sortfreq=False)
+
+    # Locate 19 kHz bin.
+    k19 = int(19.0e3 * len(q) / fs)
+    kw  = 5 + int(100.0 * len(q) / fs)
+    k19 = k19 - kw + numpy.argmax(q[k19-kw:k19+kw])
+
+    # Calculate pilot power.
+    p19 = numpy.sum(q[k19-1:k19+2]) * fs * 0.75 / len(q)
+
+    # Calculate noise floor in guard band.
+    k17 = int(17.0e3 * len(q) / fs)
+    k18 = int(18.0e3 * len(q) / fs)
+    guard = numpy.mean(q[k17:k18])
+
+    p19db   = 10 * numpy.log10(p19)
+    guarddb = 10 * numpy.log10(guard)
+
+    return (p19db, guarddb, guarddb - p19db)
 
