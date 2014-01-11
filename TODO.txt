@@ -1,19 +1,16 @@
+* (experiment) make nice plot of baseband distortion due to IF filtering
+* (experiment) consider downsampling IF signal before FM detection
 * (experiment) measure effect of IF gain on baseband SNR
 * (experiment) measure effect of IF gain linearity on baseband SNR
 * (experiment) measure effect of RTL AGC mode on baseband SNR
-* (experiment) measure effect of ADC calibration on baseband SNR
-* (experiment) measure effect of IF bandwidth on baseband SNR
-* (experiment) measure effect of IF sample rate on baseband SNR
 * (experiment) try if RTL AGC mode improves FM decoding
 
 * (feature) support 'M' 'k' suffixes for sample rates and tuning frequency
 * (feature) implement off-line FM decoder in Python for experimentation
 * (feature) implement stereo pilot pulse-per-second
-* (quality) consider DC offset calibration
 * (speedup) maybe replace high-order FIR downsampling filter with 2nd order butterworth followed by lower order FIR filter
 * figure out why we sometimes lose stereo lock
 * it looks like IF level sometimes varies so much that it saturates the receiver; perhaps this can be solved by dynamically managing the hardware gain in response to level measurements
-* (quality) figure out if I/Q balance can improve weak stations
 * (quality) figure out if hardware gain settings can improve weak stations
 * (feature) implement RDS decoding
 * (quality) consider FM demodulation with PLL instead of phase discriminator

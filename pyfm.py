@@ -6,6 +6,8 @@ import sys
 import types
 import numpy
 import numpy.fft
+import numpy.linalg
+import numpy.random
 import scipy.signal
 
 
@@ -78,24 +80,37 @@ def firFilter(d, coeff):
         return scipy.signal.lfilter(coeff, 1, d)
 
 
-def quadratureDetector(d):
-    """FM frequency detector based on quadrature demodulation."""
+def quadratureDetector(d, fs):
+    """FM frequency detector based on quadrature demodulation.
+    Return an array of real-valued numbers, representing frequencies in Hz."""
+
+    k = fs / (2 * numpy.pi)
 
     # lazy version
     def g(d):
         prev = None
         for b in d:
-            if prev is None:
-                yield numpy.angle(b[1:] * b[:-1].conj())
-            else:
-                x = numpy.concatenate((prev[-1:], b[:-1]))
-                yield numpy.angle(b * x.conj())
+            if prev is not None:
+                x = numpy.concatenate((prev[1:], b[:1]))
+                yield numpy.angle(x * prev.conj()) * k
             prev = b
+        yield numpy.angle(prev[1:] * prev[:-1].conj()) * k
 
     if isinstance(d, types.GeneratorType):
         return g(d)
     else:
-        return numpy.angle(d[1:] * d[:-1].conj())
+        return numpy.angle(d[1:] * d[:-1].conj()) * k
+
+
+def modulateFm(sig, fs, fcenter=0):
+    """Create an FM modulated IQ signal.
+
+    sig     :: modulation signal, values in Hz
+    fs      :: sample rate in Hz
+    fcenter :: center frequency in Hz
+    """
+
+    return numpy.exp(2j * numpy.pi * (sig + fcenter).cumsum() / fs)
 
 
 def spectrum(d, fs=1, nfft=None, sortfreq=False):
@@ -232,11 +247,12 @@ def pll(d, centerfreq, bandwidth):
     return y, phasei, phaseq, phaseerr, freq, phase
 
 
-def pilotLevel(d, fs, freqshift, bw=150.0e3):
+def pilotLevel(d, fs, freqshift, nfft=None, bw=150.0e3):
     """Calculate level of the 19 kHz pilot vs noise floor in the guard band.
 
     d         :: block of raw I/Q samples or lazy I/Q sample stream
     fs        :: sample frequency in Hz
+    nfft      :: FFT length
     freqshift :: frequency offset in Hz
     bw        :: half-bandwidth of IF signal in Hz
 
@@ -255,10 +271,10 @@ def pilotLevel(d, fs, freqshift, bw=150.0e3):
     d = firFilter(d, b)
 
     # Demodulate FM.
-    d = quadratureDetector(d)
+    d = quadratureDetector(d, fs)
 
     # Power spectral density.
-    f, q = spectrum(d, fs=fs, sortfreq=False)
+    f, q = spectrum(d, fs=fs, nfft=nfft, sortfreq=False)
 
     # Locate 19 kHz bin.
     k19 = int(19.0e3 * len(q) / fs)
@@ -266,7 +282,7 @@ def pilotLevel(d, fs, freqshift, bw=150.0e3):
     k19 = k19 - kw + numpy.argmax(q[k19-kw:k19+kw])
 
     # Calculate pilot power.
-    p19 = numpy.sum(q[k19-1:k19+2]) * fs * 0.75 / len(q)
+    p19 = numpy.sum(q[k19-1:k19+2]) * fs * 1.5 / len(q)
 
     # Calculate noise floor in guard band.
     k17 = int(17.0e3 * len(q) / fs)
@@ -277,4 +293,67 @@ def pilotLevel(d, fs, freqshift, bw=150.0e3):
     guarddb = 10 * numpy.log10(guard)
 
     return (p19db, guarddb, guarddb - p19db)
+
+
+def modulateAndReconstruct(sigfreq, sigampl, nsampl, fs, noisebw=None, ifbw=None, ifnoise=0):
+    """Create a pure sine wave, modulate to FM, add noise, filter, demodulate.
+
+    sigfreq     :: frequency of sine wave in Hz
+    sigampl     :: amplitude of sine wave in Hz (carrier swing)
+    nsampl      :: number of samples
+    fs          :: sample rate in Hz
+    noisebw     :: calculate noise after demodulation over this bandwidth
+    ifbw        :: IF filter bandwidth in Hz, or None for no filtering
+    ifnoise     :: IF noise level
+
+    Return (ampl, phase, noise)
+    where ampl  is the amplitude of the reconstructed sine wave (~ sigampl)
+          phase is the phase shift after reconstruction
+          noise is the standard deviation of noise in the reconstructed signal
+    """
+
+    # Make sine wave.
+    sig0  = sigampl * numpy.sin(2*numpy.pi*sigfreq/fs * numpy.arange(nsampl))
+
+    # Modulate to IF.
+    fm = modulateFm(sig0, fs=fs, fcenter=0)
+
+    # Add noise.
+    if ifnoise:
+        fm +=      numpy.sqrt(0.5) * numpy.random.normal(0, ifnoise, nsampl)
+        fm += 1j * numpy.sqrt(0.5) * numpy.random.normal(0, ifnoise, nsampl)
+
+    # Filter IF.
+    if ifbw is not None:
+        b  = scipy.signal.firwin(61, 2.0 * ifbw / fs, window='nuttall')
+        fm = scipy.signal.lfilter(b, 1, fm)
+        fm = fm[61:]
+
+    # Demodulate.
+    sig1 = quadratureDetector(fm, fs=fs)
+
+    # Fit original sine wave.
+    k = len(sig1)
+    m = numpy.zeros((k, 3))
+    m[:,0] = numpy.sin(2*numpy.pi*sigfreq/fs * (numpy.arange(k) + nsampl - k))
+    m[:,1] = numpy.cos(2*numpy.pi*sigfreq/fs * (numpy.arange(k) + nsampl - k))
+    m[:,2] = 1
+    fit = numpy.linalg.lstsq(m, sig1)
+    csin, ccos, coffset = fit[0]
+    del fit
+
+    # Calculate amplitude, phase.
+    ampl1  = numpy.sqrt(csin**2 + ccos**2)
+    phase1 = numpy.arctan2(-ccos, csin)
+
+    # Calculate residual noise.
+    res1   = sig1 - m[:,0] * csin - m[:,1] * ccos
+
+    if noisebw is not None:
+        b  = scipy.signal.firwin(61, 2.0 * noisebw / fs, window='nuttall')
+        res1 = scipy.signal.lfilter(b, 1, res1)
+
+    noise1 = numpy.sqrt(numpy.mean(res1 ** 2))
+
+    return ampl1, phase1, noise1
 
