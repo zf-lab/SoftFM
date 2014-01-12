@@ -295,7 +295,7 @@ def pilotLevel(d, fs, freqshift, nfft=None, bw=150.0e3):
     return (p19db, guarddb, guarddb - p19db)
 
 
-def modulateAndReconstruct(sigfreq, sigampl, nsampl, fs, noisebw=None, ifbw=None, ifnoise=0):
+def modulateAndReconstruct(sigfreq, sigampl, nsampl, fs, noisebw=None, ifbw=None, ifnoise=0, ifdownsamp=1):
     """Create a pure sine wave, modulate to FM, add noise, filter, demodulate.
 
     sigfreq     :: frequency of sine wave in Hz
@@ -305,6 +305,7 @@ def modulateAndReconstruct(sigfreq, sigampl, nsampl, fs, noisebw=None, ifbw=None
     noisebw     :: calculate noise after demodulation over this bandwidth
     ifbw        :: IF filter bandwidth in Hz, or None for no filtering
     ifnoise     :: IF noise level
+    ifdownsamp  :: downsample factor before demodulation
 
     Return (ampl, phase, noise)
     where ampl  is the amplitude of the reconstructed sine wave (~ sigampl)
@@ -325,18 +326,24 @@ def modulateAndReconstruct(sigfreq, sigampl, nsampl, fs, noisebw=None, ifbw=None
 
     # Filter IF.
     if ifbw is not None:
-        b  = scipy.signal.firwin(61, 2.0 * ifbw / fs, window='nuttall')
+        b  = scipy.signal.firwin(101, 2.0 * ifbw / fs, window='nuttall')
         fm = scipy.signal.lfilter(b, 1, fm)
         fm = fm[61:]
 
+    # Downsample IF.
+    fs1 = fs
+    if ifdownsamp != 1:
+        fm = fm[::ifdownsamp]
+        fs1 = fs / ifdownsamp
+
     # Demodulate.
-    sig1 = quadratureDetector(fm, fs=fs)
+    sig1 = quadratureDetector(fm, fs=fs1)
 
     # Fit original sine wave.
     k = len(sig1)
     m = numpy.zeros((k, 3))
-    m[:,0] = numpy.sin(2*numpy.pi*sigfreq/fs * (numpy.arange(k) + nsampl - k))
-    m[:,1] = numpy.cos(2*numpy.pi*sigfreq/fs * (numpy.arange(k) + nsampl - k))
+    m[:,0] = numpy.sin(2*numpy.pi*sigfreq/fs1 * (numpy.arange(k) + nsampl - k))
+    m[:,1] = numpy.cos(2*numpy.pi*sigfreq/fs1 * (numpy.arange(k) + nsampl - k))
     m[:,2] = 1
     fit = numpy.linalg.lstsq(m, sig1)
     csin, ccos, coffset = fit[0]
@@ -350,7 +357,7 @@ def modulateAndReconstruct(sigfreq, sigampl, nsampl, fs, noisebw=None, ifbw=None
     res1   = sig1 - m[:,0] * csin - m[:,1] * ccos
 
     if noisebw is not None:
-        b  = scipy.signal.firwin(61, 2.0 * noisebw / fs, window='nuttall')
+        b  = scipy.signal.firwin(101, 2.0 * noisebw / fs1, window='nuttall')
         res1 = scipy.signal.lfilter(b, 1, res1)
 
     noise1 = numpy.sqrt(numpy.mean(res1 ** 2))

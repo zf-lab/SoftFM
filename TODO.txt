@@ -1,4 +1,4 @@
-* (experiment) make nice plot of baseband distortion due to IF filtering
+* (experiment) consider reducing IF filter bandwidth to ~ 80 kHz
 * (experiment) consider downsampling IF signal before FM detection
 * (experiment) measure effect of IF gain on baseband SNR
 * (experiment) measure effect of IF gain linearity on baseband SNR
@@ -6,7 +6,6 @@
 * (experiment) try if RTL AGC mode improves FM decoding
 
 * (feature) support 'M' 'k' suffixes for sample rates and tuning frequency
-* (feature) implement off-line FM decoder in Python for experimentation
 * (feature) implement stereo pilot pulse-per-second
 * (speedup) maybe replace high-order FIR downsampling filter with 2nd order butterworth followed by lower order FIR filter
 * figure out why we sometimes lose stereo lock

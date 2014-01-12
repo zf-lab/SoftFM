@@ -8,8 +8,9 @@ Valid sample rates
 
 Sample rates between 300001 Hz and 900000 Hz (inclusive) are not supported.
 They cause an invalid configuration of the RTL chip.
-  rsamp_ratio = 28.8 MHz * 2**22 / sample_rate
-  If bit 27 and bit 28 of rsamp_ratio are different, the RTL chip malfunctions.
+
+rsamp_ratio = 28.8 MHz * 2**22 / sample_rate
+If bit 27 and bit 28 of rsamp_ratio are different, the RTL chip malfunctions.
 
 
 Behaviour of RTL and Elonics tuner
@@ -52,6 +53,36 @@ Elonics IF linearity: optimize sensitivity (default), auto switch disabled
 Elonics IF gain: +6, +0, +0, +0, +9, +9 (non-standard mode)
 Elonics IF filters: matched to sample rate (note this may not be optimal)
 RTL AGC mode off
+
+
+Effect of IF signal filtering
+-----------------------------
+
+Carson bandwidth rule:
+  IF_half_bandwidth = peak_freq_devation + modulating_freq
+
+In case of broadcast FM, this is
+  75 kHz + 53 kHz = 128 kHz  (worst case)
+  19 kHz + 53 kHz =  72 kHz  (typical case)
+
+Simulations of IF filtering show:
+ * narrow IF filter reduces noise in the baseband
+ * narrow IF filter causes gain roll-off for high modulating frequencies
+ * narrow IF filter causes harmonic distortion at high modulating deviation
+
+IF filter with 100 kHz half-bandwidth:
+ * baseband gain >= -1 dB up to 75 kHz
+ * less than 0.1% distortion of modulating signal at 19 kHz peak deviation
+ * ~ 2% distortion of modulating signal at 75 kHz peak devation
+
+IF filter with 75 kHz half-bandwidth:
+ * baseband gain ~ -3 dB at 60 kHz, ~ -8 dB at 75 kHz
+ * ~ 1% distortion of modulating signal at 19 kHz peak deviation
+
+Optimal IF bandwidth is probably somewhere between 75 and 100 kHz, with
+roll-off not too steep.
+Weak stations benefit from a narrow IF filter to reduce noise.
+Strong stations benefit from a wider IF filter to reduce harmonics.
 
 
 Effect of settings on baseband SNR
