@@ -88,6 +88,10 @@ Strong stations benefit from a wider IF filter to reduce harmonics.
 Effect of settings on baseband SNR
 ----------------------------------
 
+Note: all measurements 10 second duration
+Note: all measurements have LO frequency set to station + 250 kHz
+
+
 STATION  SRATE   LNA    IF GAIN   AGC   SOFT BW    IF LEVEL  GUARD/PILOT
 
 radio3   1 MS/s  24 dB  default   off   150 kHz     0.19      -62.6 dB/Hz
@@ -107,13 +111,55 @@ radio4   2 MS/s  34 dB  default   off   150 kHz     0.10      -42.4 dB/Hz
 radio4   2 MS/s  34 dB  default   off    80 kHz               -48.2 dB/Hz
 radio4   2 MS/s  34 dB  default   off   150 kHz adccal        -42.4 dB/Hz
 
-Note: all measurements 10 second duration
-Note: all measurements have LO frequency set to station + 250 kHz
-
 Conclusion: Sample rate (1 MS/s to 2 MS/s) has little effect on quality.
 Conclusion: LNA gain has little effect on quality.
 Conclusion: Narrow IF filter improves quality of weak station.
 Conclusion: ADC gain/offset calibration has no effect on quality.
+
+
+STATION  SRATE   LNA    IF GAIN   AGC   SOFT BW    IF LEVEL  GUARD/PILOT
+
+radio3   2 MS/s  34 dB 9,0,0,0,9,9   off 80 kHz     0.38      -63.2 dB/Hz
+radio3   2 MS/s  34 dB 0,0,0,0,3,3   off 80 kHz     0.03      -61.5 dB/Hz
+radio3   2 MS/s  34 dB 0,0,0,0,3,9   off 80 kHz     0.07      -61.5 dB/Hz
+radio3   2 MS/s  34 dB 0,0,0,0,3,15  off 80 kHz     0.11      -60.5 dB/Hz
+radio3   2 MS/s  34 dB 0,0,0,0,9,15  off 80 kHz     0.22      -61.0 dB/Hz
+radio3   2 MS/s  34 dB 0,0,0,0,15,15 off 80 kHz     0.36      -61.4 dB/Hz
+radio3   2 MS/s  34 dB 0,0,6,0,15,15 off 80 kHz     0.66 CLIP -63.5 dB/Hz
+radio3   2 MS/s  34 dB 0,6,0,0,3,3   off 80 kHz     0.07      -62.9 dB/Hz      
+radio3   2 MS/s  34 dB 9,3,0,0,3,3   off 80 kHz     0.14      -63.9 dB/Hz
+radio3   2 MS/s  34 dB 9,9,0,0,3,3   off 80 kHz     0.26      -64.2 dB/Hz
+radio3   2 MS/s  34 dB 9,9,3,2,3,3   off 80 kHz     0.45      -64.1 dB/Hz
+radio3   2 MS/s  34 dB 9,9,6,0,3,3   off 80 kHz     0.49      -63.7 dB/Hz
+radio3   2 MS/s  34 dB 9,9,9,0,6,3   off 80 kHz     0.77 CLIP -61.2 dB/Hz
+
+radio4   2 MS/s  34 dB 9,0,0,0,9,9   off 80 kHz     0.09      -41.5 dB/Hz
+radio4   2 MS/s  34 dB 0,0,0,0,3,3   off 80 kHz     0.01      -36.7 dB/Hz
+radio4   2 MS/s  34 dB 0,0,0,0,3,9   off 80 kHz     0.02      -39.9 dB/Hz
+radio4   2 MS/s  34 dB 0,0,0,0,3,15  off 80 kHz     0.03      -40.4 dB/Hz
+radio4   2 MS/s  34 dB 0,0,0,0,9,15  off 80 kHz     0.06      -39.9 dB/Hz
+radio4   2 MS/s  34 dB 0,0,0,0,15,15 off 80 kHz     0.09      -40.9 dB/Hz
+radio4   2 MS/s  34 dB 0,0,6,0,15,15 off 80 kHz     0.17      -38.4 dB/Hz
+radio4   2 MS/s  34 dB 0,6,0,0,3,3   off 80 kHz     0.02      -36.9 dB/Hz
+radio4   2 MS/s  34 dB 9,3,0,0,3,3   off 80 kHz     0.03      -37.5 dB/Hz
+radio4   2 MS/s  34 dB 9,9,0,0,3,3   off 80 kHz     0.07      -39.4 dB/Hz
+radio4   2 MS/s  34 dB 9,9,3,2,3,3   off 80 kHz     0.11      -38.5 dB/Hz
+radio4   2 MS/s  34 dB 9,9,6,0,3,3   off 80 kHz     0.12      -38.0 dB/Hz
+radio4   2 MS/s  34 dB 9,9,9,0,6,3   off 80 kHz     0.22      -37.5 dB/Hz
+
+Conclusion: IF gain has little effect on quality, although very low gain
+            has an adverse effect. Librtlsdr defaults look good.
+
+
+STATION  SRATE   LNA    IF GAIN   AGC   SOFT BW    IF LEVEL  GUARD/PILOT
+
+radio3   2 MS/s  34 dB  default   off    80 kHz     0.36      -62.1 dB/Hz
+radio3   2 MS/s  34 dB  default   ON     80 kHz     0.36      -61.6 dB/Hz
+
+radio4   2 MS/s  34 dB  default   off    80 kHz     0.11      -38.5 dB/Hz
+radio4   2 MS/s  34 dB  default   ON     80 kHz     0.36 CLIP -38.0 dB/Hz
+
+Conclusion: AGC mode has little effect on quality.
 
 
 Local radio stations

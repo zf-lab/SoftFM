@@ -1,8 +1,5 @@
 * (experiment) consider reducing IF filter bandwidth to ~ 80 kHz
 * (experiment) consider downsampling IF signal before FM detection
-* (experiment) measure effect of IF gain on baseband SNR
-* (experiment) measure effect of IF gain linearity on baseband SNR
-* (experiment) measure effect of RTL AGC mode on baseband SNR
 * (experiment) try if RTL AGC mode improves FM decoding
 
 * (feature) support 'M' 'k' suffixes for sample rates and tuning frequency
