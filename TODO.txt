@@ -1,9 +1,8 @@
-* (experiment) consider reducing IF filter bandwidth to ~ 80 kHz
-* (experiment) consider downsampling IF signal before FM detection
-
 * (feature) support 'M' 'k' suffixes for sample rates and tuning frequency
 * (feature) implement stereo pilot pulse-per-second
 * (speedup) maybe replace high-order FIR downsampling filter with 2nd order butterworth followed by lower order FIR filter
 * figure out why we sometimes lose stereo lock
 * (feature) implement RDS decoding
 * (quality) consider FM demodulation with PLL instead of phase discriminator
+* (speedup) consider downsampling of IF signal before FM detection
+            (work in progress in branch "filterif")
