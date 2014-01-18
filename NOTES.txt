@@ -29,9 +29,7 @@ settings during a run. The LNA gain seems to switch between ~ 24 dB
 and ~ 34 dB without intermediate steps.
 
 With RTL in AGC mode, the level of the digital sample stream is normalized
-to -6 dB FS.
-Unknown whether this is an analog or digital gain stage.
-Does this improve SNR or not?
+to -6 dB FS. Unknown whether this is an analog or digital gain stage.
 
 At first I suspected that AGC mode may be a cooperation between the RTL and
 the Elonics tuner. I thought that the RTL would monitor the level and send

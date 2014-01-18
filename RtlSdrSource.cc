@@ -39,7 +39,8 @@ RtlSdrSource::~RtlSdrSource()
 bool RtlSdrSource::configure(uint32_t sample_rate,
                              uint32_t frequency,
                              int tuner_gain,
-                             int block_length)
+                             int block_length,
+                             bool agcmode)
 {
     int r;
 
@@ -76,6 +77,13 @@ bool RtlSdrSource::configure(uint32_t sample_rate,
             m_error = "rtlsdr_set_tuner_gain failed";
             return false;
         }
+    }
+
+    // set RTL AGC mode
+    r = rtlsdr_set_agc_mode(m_dev, int(agcmode));
+    if (r < 0) {
+        m_error = "rtlsdr_set_agc_mode failed";
+        return false;
     }
 
     // set block length

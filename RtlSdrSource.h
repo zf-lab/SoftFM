@@ -25,13 +25,14 @@ public:
      *
      * sample_rate  :: desired sample rate in Hz.
      * frequency    :: desired center frequency in Hz.
-     * gain         :: desired tuner gain index, or -1 for auto-gain.
+     * tuner_gain   :: desired tuner gain in 0.1 dB, or -1 for auto-gain.
      * block_length :: preferred number of samples per block.
      *
      * Return true for success, false if an error occurred.
      */
     bool configure(uint32_t sample_rate, uint32_t frequency, int tuner_gain,
-                   int block_length=default_block_length);
+                   int block_length=default_block_length,
+                   bool agcmode=false);
 
     /** Return current sample frequency in Hz. */
     uint32_t get_sample_rate();

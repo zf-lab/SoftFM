@@ -217,6 +217,7 @@ void usage()
             "  -d devidx     RTL-SDR device index, 'list' to show device list (default 0)\n"
             "  -s ifrate     IF sample rate in Hz (default 1000000, min 900001)\n"
             "  -r pcmrate    Audio sample rate in Hz (default 48000 Hz)\n"
+            "  -a 0          Disable RTL AGC mode (default 1 = enabled)\n"
             "  -M            Disable stereo decoding\n"
             "  -R filename   Write audio data as raw S16_LE samples\n"
             "                use filename '-' to write to stdout\n"
@@ -266,6 +267,7 @@ int main(int argc, char **argv)
     string  filename;
     string  alsadev("default");
     double  bufsecs = -1;
+    int     agcmode = 1;
 
     fprintf(stderr,
             "SoftFM - Software decoder for FM broadcast radio with RTL-SDR\n");
@@ -275,6 +277,7 @@ int main(int argc, char **argv)
         { "dev",        1, NULL, 'd' },
         { "ifrate",     1, NULL, 's' },
         { "pcmrate",    1, NULL, 'r' },
+        { "agc",        1, NULL, 'a' },
         { "mono",       0, NULL, 'M' },
         { "raw",        1, NULL, 'R' },
         { "wav",        1, NULL, 'W' },
@@ -284,7 +287,7 @@ int main(int argc, char **argv)
 
     int c, longindex;
     while ((c = getopt_long(argc, argv,
-                            "f:d:s:r:MR:W:P::b:",
+                            "f:d:s:r:MR:W:P::b:a:",
                             longopts, &longindex)) >= 0) {
         switch (c) {
             case 'f':
@@ -328,11 +331,22 @@ int main(int argc, char **argv)
                     badarg("-b");
                 }
                 break;
+            case 'a':
+                if (!parse_opt(optarg, agcmode)) {
+                    badarg("-a");
+                }
+                break;
             default:
                 usage();
-                fprintf(stderr, "ERROR: Unknown option\n");
+                fprintf(stderr, "ERROR: Invalid command line options\n");
                 exit(1);
         }
+    }
+
+    if (optind < argc) {
+        usage();
+        fprintf(stderr, "ERROR: Invalid command  line options\n");
+        exit(1);
     }
 
     vector<string> devnames = RtlSdrSource::get_device_names();
@@ -377,7 +391,8 @@ int main(int argc, char **argv)
     }
 
     // Configure RTL-SDR device and start streaming.
-    rtlsdr.configure(ifrate, tuner_freq, -1);
+    rtlsdr.configure(ifrate, tuner_freq, -1,
+                     RtlSdrSource::default_block_length, agcmode);
     if (!rtlsdr) {
         fprintf(stderr, "ERROR: RtlSdr: %s\n", rtlsdr.error().c_str());
         exit(1);
@@ -388,6 +403,8 @@ int main(int argc, char **argv)
 
     ifrate = rtlsdr.get_sample_rate();
     fprintf(stderr, "IF sample rate %.0f Hz\n", ifrate);
+
+    fprintf(stderr, "RTL AGC mode %s\n", agcmode ? "enabled" : "disabled");
 
     // Create source data queue.
     DataBuffer<IQSample> source_buffer;
