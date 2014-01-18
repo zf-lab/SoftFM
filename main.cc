@@ -236,22 +236,41 @@ void badarg(const char *label)
 }
 
 
-bool parse_opt(const char *s, int& v)
+bool parse_int(const char *s, int& v, bool allow_unit=false)
 {
     char *endp;
     long t = strtol(s, &endp, 10);
-    if (endp == s || *endp != '\0' || t < INT_MIN || t > INT_MAX)
+    if (endp == s)
+        return false;
+    if ( allow_unit && *endp == 'k' &&
+         t > INT_MIN / 1000 && t < INT_MAX / 1000 ) {
+        t *= 1000;
+        endp++;
+    }
+    if (*endp != '\0' || t < INT_MIN || t > INT_MAX)
         return false;
     v = t;
     return true;
 }
 
 
-bool parse_opt(const char *s, double& v)
+bool parse_dbl(const char *s, double& v)
 {
     char *endp;
     v = strtod(s, &endp);
-    return (endp != s && *endp == '\0');
+    if (endp == s)
+        return false;
+    if (*endp == 'k') {
+        v *= 1.0e3;
+        endp++;
+    } else if (*endp == 'M') {
+        v *= 1.0e6;
+        endp++;
+    } else if (*endp == 'G') {
+        v *= 1.0e9;
+        endp++;
+    }
+    return (*endp == '\0');
 }
 
 
@@ -291,22 +310,22 @@ int main(int argc, char **argv)
                             longopts, &longindex)) >= 0) {
         switch (c) {
             case 'f':
-                if (!parse_opt(optarg, freq) || freq <= 0) {
+                if (!parse_dbl(optarg, freq) || freq <= 0) {
                     badarg("-f");
                 }
                 break;
             case 'd':
-                if (!parse_opt(optarg, devidx))
+                if (!parse_int(optarg, devidx))
                     devidx = -1;
                 break;
             case 's':
                 // NOTE: RTL does not suppor sample rate 900 kS/s or lower
-                if (!parse_opt(optarg, ifrate) || ifrate <= 900000) {
+                if (!parse_dbl(optarg, ifrate) || ifrate <= 900000) {
                     badarg("-s");
                 }
                 break;
             case 'r':
-                if (!parse_opt(optarg, pcmrate) || pcmrate < 1) {
+                if (!parse_int(optarg, pcmrate, true) || pcmrate < 1) {
                     badarg("-r");
                 }
                 break;
@@ -327,12 +346,12 @@ int main(int argc, char **argv)
                     alsadev = optarg;
                 break;
             case 'b':
-                if (!parse_opt(optarg, bufsecs) || bufsecs < 0) {
+                if (!parse_dbl(optarg, bufsecs) || bufsecs < 0) {
                     badarg("-b");
                 }
                 break;
             case 'a':
-                if (!parse_opt(optarg, agcmode)) {
+                if (!parse_int(optarg, agcmode)) {
                     badarg("-a");
                 }
                 break;
