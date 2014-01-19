@@ -46,8 +46,8 @@ public:
     struct PpsEvent
     {
         std::uint64_t   pps_index;
-        std::uint64_t   abs_sample_index;
-        std::uint64_t   block_sample_index;
+        std::uint64_t   sample_index;
+        double          block_position;
     };
 
     /**

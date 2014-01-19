@@ -1,4 +1,3 @@
-* (feature) implement stereo pilot pulse-per-second
 * (speedup) maybe replace high-order FIR downsampling filter with 2nd order butterworth followed by lower order FIR filter
 * figure out why we sometimes lose stereo lock
 * (feature) implement RDS decoding

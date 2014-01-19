@@ -31,6 +31,7 @@
 #include <thread>
 #include <unistd.h>
 #include <getopt.h>
+#include <sys/time.h>
 
 #include "SoftFM.h"
 #include "RtlSdrSource.h"
@@ -212,7 +213,7 @@ static void handle_sigterm(int sig)
 void usage()
 {
     fprintf(stderr,
-            "Usage: softfm -f freq [options]\n"
+    "Usage: softfm -f freq [options]\n"
             "  -f freq       Frequency of radio station in Hz\n"
             "  -d devidx     RTL-SDR device index, 'list' to show device list (default 0)\n"
             "  -s ifrate     IF sample rate in Hz (default 1000000, min 900001)\n"
@@ -223,6 +224,8 @@ void usage()
             "                use filename '-' to write to stdout\n"
             "  -W filename   Write audio data to .WAV file\n"
             "  -P [device]   Play audio via ALSA device (default 'default')\n"
+            "  -T filename   Write pulse-per-second timestamps\n"
+            "                use filename '-' to write to stdout\n"
             "  -b seconds    Set audio buffer size in seconds\n"
             "\n");
 }
@@ -274,6 +277,15 @@ bool parse_dbl(const char *s, double& v)
 }
 
 
+/** Return Unix time stamp in seconds. */
+double get_time()
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec + 1.0e-6 * tv.tv_usec;
+}
+
+
 int main(int argc, char **argv)
 {
     double  freq    = -1;
@@ -285,6 +297,8 @@ int main(int argc, char **argv)
     OutputMode outmode = MODE_ALSA;
     string  filename;
     string  alsadev("default");
+    string  ppsfilename;
+    FILE *  ppsfile = NULL;
     double  bufsecs = -1;
     int     agcmode = 1;
 
@@ -301,12 +315,13 @@ int main(int argc, char **argv)
         { "raw",        1, NULL, 'R' },
         { "wav",        1, NULL, 'W' },
         { "play",       2, NULL, 'P' },
+        { "pps",        1, NULL, 'T' },
         { "buffer",     1, NULL, 'b' },
         { NULL,         0, NULL, 0 } };
 
     int c, longindex;
     while ((c = getopt_long(argc, argv,
-                            "f:d:s:r:MR:W:P::b:a:",
+                            "f:d:s:r:MR:W:P::T:b:a:",
                             longopts, &longindex)) >= 0) {
         switch (c) {
             case 'f':
@@ -344,6 +359,9 @@ int main(int argc, char **argv)
                 outmode = MODE_ALSA;
                 if (optarg != NULL)
                     alsadev = optarg;
+                break;
+            case 'T':
+                ppsfilename = optarg;
                 break;
             case 'b':
                 if (!parse_dbl(optarg, bufsecs) || bufsecs < 0) {
@@ -469,6 +487,25 @@ int main(int argc, char **argv)
                 outputbuf_samples / double(pcmrate));
     }
 
+    // Open PPS file.
+    if (!ppsfilename.empty()) {
+        if (ppsfilename == "-") {
+            fprintf(stderr, "Writing pulse-per-second markers to stdout\n");
+            ppsfile = stdout;
+        } else {
+            fprintf(stderr, "Writing pulse-per-second markers to '%s'\n",
+                    ppsfilename.c_str());
+            ppsfile = fopen(ppsfilename.c_str(), "w");
+            if (ppsfile == NULL) {
+                fprintf(stderr, "ERROR: can not open '%s' (%s)\n",
+                        ppsfilename.c_str(), strerror(errno));
+                exit(1);
+            }
+        }
+        fprintf(ppsfile, "#pps_index sample_index   unix_time\n");
+        fflush(ppsfile);
+    }
+
     // Prepare output writer.
     unique_ptr<AudioOutput> audio_output;
     switch (outmode) {
@@ -511,6 +548,8 @@ int main(int argc, char **argv)
     double audio_level = 0;
     bool got_stereo = false;
 
+    double block_time = get_time();
+
     // Main loop.
     for (unsigned int block = 0; !stop_flag.load(); block++) {
 
@@ -527,6 +566,9 @@ int main(int argc, char **argv)
         if (iqsamples.empty())
             break;
 
+        double prev_block_time = block_time;
+        block_time = get_time();
+
         // Decode FM signal.
         fm.process(iqsamples, audiosamples);
 
@@ -535,10 +577,10 @@ int main(int argc, char **argv)
         samples_mean_rms(audiosamples, audio_mean, audio_rms);
         audio_level = 0.95 * audio_level + 0.05 * audio_rms;
 
+        // Set nominal audio volume.
         adjust_gain(audiosamples, 0.5);
 
-// TODO : investigate I/Q imbalance to fix Radio4 noise
-
+        // Show statistics.
         fprintf(stderr,
                 "\rblk=%6d  freq=%8.4fMHz  IF=%+5.1fdB  BB=%+5.1fdB  audio=%+5.1fdB ",
                 block,
@@ -555,6 +597,7 @@ int main(int argc, char **argv)
         }
         fflush(stderr);
 
+        // Show stereo status.
         if (fm.stereo_detected() != got_stereo) {
             got_stereo = fm.stereo_detected();
             if (got_stereo)
@@ -562,6 +605,23 @@ int main(int argc, char **argv)
                         fm.get_pilot_level());
             else
                 fprintf(stderr, "\nlost stereo signal\n");
+        }
+
+        // Write PPS markers.
+        if (ppsfile != NULL) {
+            for (const PilotPhaseLock::PpsEvent& ev : fm.get_pps_events()) {
+                double ts = prev_block_time;
+                ts += ev.block_position * (block_time - prev_block_time);
+                if (ppsfile == stdout && isatty(fileno(ppsfile))) {
+                    fprintf(stderr, "\n");
+                    fflush(stderr);
+                }
+                fprintf(ppsfile, "%8s %14s %18.6f\n",
+                        to_string(ev.pps_index).c_str(),
+                        to_string(ev.sample_index).c_str(),
+                        ts);
+                fflush(ppsfile);
+            }
         }
 
         // Throw away first block. It is noisy because IF filters

@@ -219,9 +219,9 @@ void PilotPhaseLock::process(const SampleVector& samples_in,
                 m_pilot_periods = 0;
                 if (was_locked) {
                     struct PpsEvent ev;
-                    ev.pps_index          = m_pps_cnt;
-                    ev.abs_sample_index   = m_sample_cnt + i;
-                    ev.block_sample_index = i;
+                    ev.pps_index      = m_pps_cnt;
+                    ev.sample_index   = m_sample_cnt + i;
+                    ev.block_position = double(i) / double(n);
                     m_pps_events.push_back(ev);
                     m_pps_cnt++;
                 }
