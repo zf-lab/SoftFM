@@ -45,7 +45,7 @@ protected:
 
     /** Encode a list of samples as signed 16-bit little-endian integers. */
     static void samplesToInt16(const SampleVector& samples,
-                               std::vector<uint8_t>& bytes);
+                               std::vector<std::uint8_t>& bytes);
 
     std::string m_error;
     bool        m_zombie;
@@ -72,8 +72,8 @@ public:
     bool write(const SampleVector& samples);
 
 private:
-    int                  m_fd;
-    std::vector<uint8_t> m_bytebuf;
+    int m_fd;
+    std::vector<std::uint8_t> m_bytebuf;
 };
 
 
@@ -101,15 +101,15 @@ private:
     /** (Re-)Write .WAV header. */
     bool write_header(unsigned int nsamples);
 
-    static void encode_chunk_id(uint8_t * ptr, const char * chunkname);
+    static void encode_chunk_id(std::uint8_t * ptr, const char * chunkname);
 
     template <typename T>
-    static void set_value(uint8_t * ptr, T value);
+    static void set_value(std::uint8_t * ptr, T value);
 
     const unsigned numberOfChannels;
     const unsigned sampleRate;
-    FILE *m_stream;
-    std::vector<uint8_t> m_bytebuf;
+    std::FILE *m_stream;
+    std::vector<std::uint8_t> m_bytebuf;
 };
 
 
@@ -135,7 +135,7 @@ public:
 private:
     unsigned int         m_nchannels;
     struct _snd_pcm *    m_pcm;
-    std::vector<uint8_t> m_bytebuf;
+    std::vector<std::uint8_t> m_bytebuf;
 };
 
 #endif

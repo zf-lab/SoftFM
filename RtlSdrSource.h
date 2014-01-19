@@ -30,15 +30,17 @@ public:
      *
      * Return true for success, false if an error occurred.
      */
-    bool configure(uint32_t sample_rate, uint32_t frequency, int tuner_gain,
+    bool configure(std::uint32_t sample_rate,
+                   std::uint32_t frequency,
+                   int tuner_gain,
                    int block_length=default_block_length,
                    bool agcmode=false);
 
     /** Return current sample frequency in Hz. */
-    uint32_t get_sample_rate();
+    std::uint32_t get_sample_rate();
 
     /** Return current center frequency in Hz. */
-    uint32_t get_frequency();
+    std::uint32_t get_frequency();
 
     /** Return current tuner gain in dB. */
     double get_tuner_gain();
