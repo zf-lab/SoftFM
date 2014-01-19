@@ -171,4 +171,11 @@ radio538   102100000  (medium)
 radio10    103800000  (bad)
 radio west  89300000  (medium)
 
+
+Stereo pilot frequency
+----------------------
+
+radio3 19 kHz pilot = 18999.8 Hz +- 0.05 Hz
+(5 hour measurement of pilot vs internet NTP)
+
 --
