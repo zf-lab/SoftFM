@@ -134,6 +134,11 @@ PilotPhaseLock::PilotPhaseLock(double freq, double bandwidth, double minsignal)
     m_phasor_q1 = 0;
     m_phasor_q2 = 0;
     m_loopfilter_x1 = 0;
+
+    // Initialize PPS generator.
+    m_pilot_periods = 0;
+    m_pps_cnt       = 0;
+    m_sample_cnt    = 0;
 }
 
 
@@ -144,6 +149,9 @@ void PilotPhaseLock::process(const SampleVector& samples_in,
     unsigned int n = samples_in.size();
 
     samples_out.resize(n);
+
+    bool was_locked = (m_lock_cnt >= m_lock_delay);
+    m_pps_events.clear();
 
     if (n > 0)
         m_pilot_level = 1000.0;
@@ -202,8 +210,23 @@ void PilotPhaseLock::process(const SampleVector& samples_in,
 
         // Update locked phase.
         m_phase += m_freq;
-        if (m_phase > 2.0 * M_PI)
+        if (m_phase > 2.0 * M_PI) {
             m_phase -= 2.0 * M_PI;
+            m_pilot_periods++;
+
+            // Generate pulse-per-second.
+            if (m_pilot_periods == pilot_frequency) {
+                m_pilot_periods = 0;
+                if (was_locked) {
+                    struct PpsEvent ev;
+                    ev.pps_index          = m_pps_cnt;
+                    ev.abs_sample_index   = m_sample_cnt + i;
+                    ev.block_sample_index = i;
+                    m_pps_events.push_back(ev);
+                    m_pps_cnt++;
+                }
+            }
+        }
     }
 
     // Update lock status.
@@ -213,6 +236,16 @@ void PilotPhaseLock::process(const SampleVector& samples_in,
     } else {
         m_lock_cnt = 0;
     }
+
+    // Drop PPS events when pilot not locked.
+    if (m_lock_cnt < m_lock_delay) {
+        m_pilot_periods = 0;
+        m_pps_cnt = 0;
+        m_pps_events.clear();
+    }
+
+    // Update sample counter.
+    m_sample_cnt += n;
 }
 
 

@@ -1,6 +1,9 @@
 #ifndef SOFTFM_FMDECODE_H
 #define SOFTFM_FMDECODE_H
 
+#include <cstdint>
+#include <vector>
+
 #include "SoftFM.h"
 #include "Filter.h"
 
@@ -36,7 +39,16 @@ class PilotPhaseLock
 {
 public:
 
-// TODO : pulse-per-second
+    /** Expected pilot frequency (used for PPS events). */ 
+    static constexpr int pilot_frequency = 19000;
+
+    /** Timestamp event produced once every 19000 pilot periods. */
+    struct PpsEvent
+    {
+        std::uint64_t   pps_index;
+        std::uint64_t   abs_sample_index;
+        std::uint64_t   block_sample_index;
+    };
 
     /**
      * Construct phase-locked loop.
@@ -66,6 +78,12 @@ public:
         return 2 * m_pilot_level;
     }
 
+    /** Return PPS events from the most recently processed block. */
+    std::vector<PpsEvent> get_pps_events() const
+    {
+        return m_pps_events;
+    }
+
 private:
     Sample  m_minfreq, m_maxfreq;
     Sample  m_phasor_b0, m_phasor_a1, m_phasor_a2;
@@ -77,6 +95,10 @@ private:
     Sample  m_pilot_level;
     int     m_lock_delay;
     int     m_lock_cnt;
+    int     m_pilot_periods;
+    std::uint64_t         m_pps_cnt;
+    std::uint64_t         m_sample_cnt;
+    std::vector<PpsEvent> m_pps_events;
 };
 
 
@@ -161,6 +183,12 @@ public:
     double get_pilot_level() const
     {
         return m_pilotpll.get_pilot_level();
+    }
+
+    /** Return PPS events from the most recently processed block. */
+    std::vector<PilotPhaseLock::PpsEvent> get_pps_events() const
+    {
+        return m_pilotpll.get_pps_events();
     }
 
 private:
