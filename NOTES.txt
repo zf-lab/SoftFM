@@ -175,7 +175,9 @@ radio west  89300000  (medium)
 Stereo pilot frequency
 ----------------------
 
-radio3 19 kHz pilot = 18999.8 Hz +- 0.05 Hz
-(5 hour measurement of pilot vs internet NTP)
+Measuring 19 kHz pilot frequency vs Internet NTP (ADSL):
+
+radio2 19 kHz pilot = 18999.79 Hz +- 0.04 Hz    (7 hours measurement)
+radio3 19 kHz pilot = 18999.8  Hz +- 0.05 Hz    (5 hours measurement)
 
 --
