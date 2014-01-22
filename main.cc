@@ -612,10 +612,6 @@ int main(int argc, char **argv)
             for (const PilotPhaseLock::PpsEvent& ev : fm.get_pps_events()) {
                 double ts = prev_block_time;
                 ts += ev.block_position * (block_time - prev_block_time);
-                if (ppsfile == stdout && isatty(fileno(ppsfile))) {
-                    fprintf(stderr, "\n");
-                    fflush(stderr);
-                }
                 fprintf(ppsfile, "%8s %14s %18.6f\n",
                         to_string(ev.pps_index).c_str(),
                         to_string(ev.sample_index).c_str(),
