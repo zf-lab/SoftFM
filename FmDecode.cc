@@ -309,7 +309,7 @@ FmDecoder::FmDecoder(double sample_rate_if,
     , m_dcblock_mono(30.0 / sample_rate_pcm)
     , m_dcblock_stereo(30.0 / sample_rate_pcm)
 
-    // Construct LowwPassFilterRC
+    // Construct LowPassFilterRC
     , m_deemph_mono(
         (deemphasis == 0) ? 1.0 : (deemphasis * sample_rate_pcm * 1.0e-6))
     , m_deemph_stereo(
