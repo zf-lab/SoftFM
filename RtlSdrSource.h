@@ -25,7 +25,7 @@ public:
      *
      * sample_rate  :: desired sample rate in Hz.
      * frequency    :: desired center frequency in Hz.
-     * tuner_gain   :: desired tuner gain in 0.1 dB, or -1 for auto-gain.
+     * tuner_gain   :: desired tuner gain in 0.1 dB, or INT_MIN for auto-gain.
      * block_length :: preferred number of samples per block.
      *
      * Return true for success, false if an error occurred.
@@ -42,11 +42,11 @@ public:
     /** Return current center frequency in Hz. */
     std::uint32_t get_frequency();
 
-    /** Return current tuner gain in dB. */
-    double get_tuner_gain();
+    /** Return current tuner gain in units of 0.1 dB. */
+    int get_tuner_gain();
 
-    /** Return a list of supported tuner gain settings in dB. */
-    std::vector<double> get_tuner_gains();
+    /** Return a list of supported tuner gain settings in units of 0.1 dB. */
+    std::vector<int> get_tuner_gains();
 
     /** Return name of opened RTL-SDR device. */
     std::string get_device_name() const

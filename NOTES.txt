@@ -160,18 +160,6 @@ radio4   2 MS/s  34 dB  default   ON     80 kHz     0.36 CLIP -38.0 dB/Hz
 Conclusion: AGC mode has little effect on quality.
 
 
-Local radio stations
---------------------
-
-radio2      92600000  (good)
-radio3      96800000  (good)
-radio4      94300000  (bad)
-qmusic     100700000  (medium)
-radio538   102100000  (medium)
-radio10    103800000  (bad)
-radio west  89300000  (medium)
-
-
 Stereo pilot frequency
 ----------------------
 
@@ -182,5 +170,48 @@ radio3   19 kHz pilot = 18999.8  Hz +- 0.05 Hz    (5 hours measurement)
 radio538 19 kHz pilot = 18999.78 Hz +- 0.04 Hz    (6 hours measurement) 
 
 Conclusion: stereo pilot is not a reliable time source.
+
+
+Ferrites
+--------
+
+Claming a ferrite block on the USB cable, as close as possible to the DVB
+received, reduces disturbance peaks in the spectrum by ~ 6 dB.
+A second ferrite block at the PC side gives another small improvement.
+
+The ferrite causes a clearly audible improvement of weak stations.
+
+
+DIY antenna
+-----------
+
+Constructed  antenna from a vertical telescopic rod antenna (85 cm)
+and two steel wire ground radials ~ 85 cm.
+Antenna placed indoors close to window.
+Antenna connected to DVB receiver via 1.5 meter 75 Ohm coax cable.
+
+The ground radials are floppy and look ridiculous but they are essential.
+No ground radials, no reception.
+
+The DIY antenna has ~ 20 dB more signal than the basic DVB antenna.
+
+The DIY antenna causes notable improvement of weak stations.
+Radio4 reception improves from very bad to almost good.
+
+However, strong stations (radio3) sound slightly worse with the DIY antenna
+than with the basic DVB antenna.
+May be caused by clipping due to too strong signal from antenna.
+
+
+Local radio stations
+--------------------
+
+radio2      92600000  (good)
+radio3      96800000  (good)
+radio4      94300000  (bad)
+qmusic     100700000  (medium)
+radio538   102100000  (medium)
+radio10    103800000  (bad)
+radio west  89300000  (medium)
 
 --

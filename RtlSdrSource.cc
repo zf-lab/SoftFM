@@ -1,4 +1,5 @@
 
+#include <climits>
 #include <cstring>
 #include <rtl-sdr.h>
 
@@ -59,7 +60,7 @@ bool RtlSdrSource::configure(uint32_t sample_rate,
         return false;
     }
 
-    if (tuner_gain < 0) {
+    if (tuner_gain == INT_MIN) {
         r = rtlsdr_set_tuner_gain_mode(m_dev, 0);
         if (r < 0) {
             m_error = "rtlsdr_set_tuner_gain_mode could not set automatic gain";
@@ -116,31 +117,25 @@ uint32_t RtlSdrSource::get_frequency()
 }
 
 
-// Return current tuner gain in dB.
-double RtlSdrSource::get_tuner_gain()
+// Return current tuner gain in units of 0.1 dB.
+int RtlSdrSource::get_tuner_gain()
 {
-    return 0.1 * rtlsdr_get_tuner_gain(m_dev);
+    return rtlsdr_get_tuner_gain(m_dev);
 }
 
 
-// Return a list of supported tuner gain settings in dB.
-vector<double> RtlSdrSource::get_tuner_gains()
+// Return a list of supported tuner gain settings in units of 0.1 dB.
+vector<int> RtlSdrSource::get_tuner_gains()
 {
-    vector<double> result;
-
     int num_gains = rtlsdr_get_tuner_gains(m_dev, NULL);
     if (num_gains <= 0)
-        return result;
+        return vector<int>();
 
-    int gains[num_gains];
-    if (rtlsdr_get_tuner_gains(m_dev, gains) != num_gains)
-        return result;
+    vector<int> gains(num_gains);
+    if (rtlsdr_get_tuner_gains(m_dev, gains.data()) != num_gains)
+        return vector<int>();
 
-    result.reserve(num_gains);
-    for (int i = 0; i < num_gains; i++)
-        result.push_back(0.1 * gains[i]);
-
-    return result;
+    return gains;
 }
 
 
