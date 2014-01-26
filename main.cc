@@ -218,9 +218,9 @@ void usage()
             "  -f freq       Frequency of radio station in Hz\n"
             "  -d devidx     RTL-SDR device index, 'list' to show device list (default 0)\n"
             "  -g gain       Set LNA gain in dB, or 'auto' (default auto)\n"
+            "  -a            Enable RTL AGC mode (default disabled)\n"
             "  -s ifrate     IF sample rate in Hz (default 1000000, min 900001)\n"
             "  -r pcmrate    Audio sample rate in Hz (default 48000 Hz)\n"
-            "  -a 0          Disable RTL AGC mode (default 1 = enabled)\n"
             "  -M            Disable stereo decoding\n"
             "  -R filename   Write audio data as raw S16_LE samples\n"
             "                use filename '-' to write to stdout\n"
@@ -293,6 +293,7 @@ int main(int argc, char **argv)
     double  freq    = -1;
     int     devidx  = 0;
     int     lnagain = INT_MIN;
+    bool    agcmode = false;
     double  ifrate  = 1.0e6;
     int     pcmrate = 48000;
     bool    stereo  = true;
@@ -303,7 +304,6 @@ int main(int argc, char **argv)
     string  ppsfilename;
     FILE *  ppsfile = NULL;
     double  bufsecs = -1;
-    int     agcmode = 1;
 
     fprintf(stderr,
             "SoftFM - Software decoder for FM broadcast radio with RTL-SDR\n");
@@ -314,7 +314,7 @@ int main(int argc, char **argv)
         { "gain",       1, NULL, 'g' },
         { "ifrate",     1, NULL, 's' },
         { "pcmrate",    1, NULL, 'r' },
-        { "agc",        1, NULL, 'a' },
+        { "agc",        0, NULL, 'a' },
         { "mono",       0, NULL, 'M' },
         { "raw",        1, NULL, 'R' },
         { "wav",        1, NULL, 'W' },
@@ -325,7 +325,7 @@ int main(int argc, char **argv)
 
     int c, longindex;
     while ((c = getopt_long(argc, argv,
-                            "f:d:g:s:r:MR:W:P::T:b:a:",
+                            "f:d:g:s:r:MR:W:P::T:b:a",
                             longopts, &longindex)) >= 0) {
         switch (c) {
             case 'f':
@@ -390,9 +390,7 @@ int main(int argc, char **argv)
                 }
                 break;
             case 'a':
-                if (!parse_int(optarg, agcmode)) {
-                    badarg("-a");
-                }
+                agcmode = true;
                 break;
             default:
                 usage();
@@ -403,7 +401,7 @@ int main(int argc, char **argv)
 
     if (optind < argc) {
         usage();
-        fprintf(stderr, "ERROR: Invalid command  line options\n");
+        fprintf(stderr, "ERROR: Unexpected command line options\n");
         exit(1);
     }
 
