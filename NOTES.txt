@@ -200,7 +200,11 @@ Radio4 reception improves from very bad to almost good.
 
 However, strong stations (radio3) sound slightly worse with the DIY antenna
 than with the basic DVB antenna.
-May be caused by clipping due to too strong signal from antenna.
+Theory: Distortion caused by clipping I/Q samples due to strong antenna signal.
+No, that's not it. Reducing LNA gain or IF gain does not help much;
+small DVB antenna still sounds better than DIY antenna.
+Difference only clear in stereo mode.
+Don't know what's going on here, maybe the DIY antenna is just not good.
 
 
 Local radio stations
