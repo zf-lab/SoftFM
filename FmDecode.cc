@@ -104,7 +104,7 @@ PilotPhaseLock::PilotPhaseLock(double freq, double bandwidth, double minsignal)
 
     // Set valid signal threshold.
     m_minsignal  = minsignal;
-    m_lock_delay = int(10.0 / bandwidth);
+    m_lock_delay = int(20.0 / bandwidth);
     m_lock_cnt   = 0;
     m_pilot_level = 0;
 
